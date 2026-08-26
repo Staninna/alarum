@@ -94,6 +94,30 @@ class SpeechSpecTest {
     }
 
     @Test
+    fun `shipped lines are sentences rather than barks`() {
+        // A three-word bark is a jingle, and a jingle stops landing. These are
+        // meant to be sentences you have to listen to.
+        Defaults.Lines.all.forEach { line ->
+            assertTrue("too short to sting: \"$line\"", line.length >= 60)
+        }
+    }
+
+    @Test
+    fun `a stage leaves time for the house to finish saying a line`() {
+        // The gap is measured publish to publish, so it has to outlast the
+        // longest sentence in the stage or the speaker talks over itself.
+        Defaults.all().flatMap { it.stages }.filter { it.speech.active }.forEach { stage ->
+            val longest = stage.speech.usableLines.maxOf { it.length }
+            // Roughly fifteen characters a second, which is a slow speaking voice.
+            val secondsToSay = longest / 15
+            assertTrue(
+                "${stage.name} says a ${longest}-char line every ${stage.speech.everySec}s",
+                stage.speech.everySec > secondsToSay,
+            )
+        }
+    }
+
+    @Test
     fun `the shipped suggestions are all sayable`() {
         assertTrue(Defaults.Lines.all.isNotEmpty())
         assertTrue(Defaults.Lines.all.all { it.isNotBlank() })

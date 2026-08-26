@@ -105,9 +105,15 @@ two utterances; triggering on the text alone would silently swallow the second.
 
 The shipped profiles already talk at the sharp end. *Gentle, then not* stays
 quiet through Gentle and Rising, turns argumentative at Insistent, and at
-Hostile shuffles ten blunt lines every twenty seconds. *No messing about* talks
-from the first stage. *Sunrise only* says nothing at all, because the entire
-point of that one is that it does not shout at you.
+Hostile shuffles ten increasingly personal remarks every thirty seconds. *No
+messing about* talks from the first stage. *Sunrise only* says nothing at all,
+because the entire point of that one is that it does not shout at you.
+
+The lines are sentences rather than barks, and deliberately so: a three-word
+command is a jingle, and a jingle becomes wallpaper by the third repeat. Set
+the gap longer than the longest line takes to say — the app measures it publish
+to publish and has no idea when your speaker finished. A test pins that for the
+shipped profiles at roughly fifteen characters a second.
 
 A list rather than one line: a single sentence repeated every thirty seconds
 stops registering after the third time, which is exactly the failure mode the

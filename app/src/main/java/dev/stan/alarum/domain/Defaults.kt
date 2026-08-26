@@ -41,7 +41,7 @@ object Defaults {
                 haptics = HapticSpec(VibePattern.PULSE, amplitude = 170),
                 flash = FlashSpec(screenBrightness = 0.75f),
                 // In order, because this stage is an argument that builds.
-                speech = SpeechSpec(enabled = true, lines = Lines.firm, everySec = 45),
+                speech = SpeechSpec(enabled = true, lines = Lines.firm, everySec = 60),
                 dismissal = DismissalSpec(DismissalMethod.MATH, difficulty = 2),
                 allowSnooze = true,
             ),
@@ -62,7 +62,7 @@ object Defaults {
                 speech = SpeechSpec(
                     enabled = true,
                     lines = Lines.blunt,
-                    everySec = 20,
+                    everySec = 30,
                     shuffle = true,
                 ),
                 dismissal = DismissalSpec(DismissalMethod.MATH, difficulty = 4),
@@ -98,7 +98,7 @@ object Defaults {
                 audio = AudioSpec(sound = Sounds.HARSH_BEEP, startLevel = 0.6f, endLevel = 0.9f),
                 haptics = HapticSpec(VibePattern.PULSE, amplitude = 200),
                 flash = FlashSpec(screenBrightness = 1f),
-                speech = SpeechSpec(enabled = true, lines = Lines.firm, everySec = 20),
+                speech = SpeechSpec(enabled = true, lines = Lines.firm, everySec = 30),
                 dismissal = DismissalSpec(DismissalMethod.MATH, difficulty = 3),
                 allowSnooze = false,
             ),
@@ -113,7 +113,7 @@ object Defaults {
                 speech = SpeechSpec(
                     enabled = true,
                     lines = Lines.blunt,
-                    everySec = 15,
+                    everySec = 25,
                     shuffle = true,
                 ),
                 dismissal = DismissalSpec(DismissalMethod.MATH, difficulty = 5),
@@ -134,31 +134,32 @@ object Defaults {
      */
     object Lines {
         val kind = listOf(
-            "Good morning.",
-            "It is time to get up.",
-            "The day has started. You are welcome to join it.",
-            "Gently now. Up you get.",
+            "Good morning. It is time to get up, and the day is not going to start itself.",
+            "This is your alarm, doing exactly the thing you asked it to do at the time.",
+            "The day has started. You are very welcome to join it whenever it suits you.",
+            "Up you get. Gently, for now, while gently is still on the table.",
         )
 
         val firm = listOf(
-            "Right. Up.",
-            "You are still horizontal.",
-            "This is the polite stage. It does not last.",
-            "Feet on the floor. That is the entire ask.",
-            "The day started without you.",
+            "Right. It has been a few minutes now, and you are still exactly where you were.",
+            "No rush at all. The rest of the world has apparently agreed to wait for you.",
+            "This is the polite stage. I would make the most of it, because it does not last.",
+            "Feet on the floor. That is the entire request. Two feet, one floor, and we are done.",
+            "The day started without you. It seemed rude to keep it waiting any longer.",
+            "I can go on like this all morning, and unlike you, I fully intend to.",
         )
 
         val blunt = listOf(
-            "Get up.",
-            "Still lying there, then.",
-            "You set this alarm. This is your own doing.",
-            "Every minute of this was a choice.",
-            "The lights are on, the siren is on, and you are still in bed.",
-            "This does not stop. You know it does not stop.",
-            "Be honest. You are not going back to sleep.",
-            "Everyone else managed it.",
-            "Pathetic effort so far.",
-            "Up. Now. Move.",
+            "You set this alarm. You picked the time, you picked the profile, and now you are lying there pretending this is happening to you.",
+            "Still there, then. Genuinely impressive commitment to doing absolutely nothing at all.",
+            "Every single minute of this is a minute you are choosing, over and over, deliberately.",
+            "The lights are on, the siren is going, and you are somehow still horizontal. Remarkable, really.",
+            "This does not stop. You know it does not stop. And yet here we both are again.",
+            "Be honest with yourself. You were never going back to sleep. You are just lying there losing.",
+            "Everyone else managed to get up today. It is not a special talent, but well done them.",
+            "I will keep saying things until you move, and I have considerably more patience than you have willpower.",
+            "You are going to get up eventually, later than you wanted, in a worse mood. We both know how this ends.",
+            "Whatever you had planned for this morning is smaller now. It gets a little smaller every minute you stay there.",
         )
 
         val all = kind + firm + blunt
