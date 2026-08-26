@@ -84,6 +84,12 @@ twenty-five minute wake-up takes twenty-five seconds. Mute silences the tone and
 the vibration and leaves the screen and torch going, which is the half you can
 stand to preview at a desk.
 
+Turning on Home Assistant publishing drops the speed to 1×, and says so if you
+put it back up. The house cannot be fast-forwarded: a light with a 290-second
+transition does not care that the app's clock is at 10×, it just gets restarted
+a tenth of the way in and looks like nothing happened. Preview the phone fast,
+preview the house at the speed the house runs at.
+
 Three things are deliberately unfaithful, and the screen says so as it goes.
 
 - The system alarm volume is never commandeered. A preview that pins your alarm

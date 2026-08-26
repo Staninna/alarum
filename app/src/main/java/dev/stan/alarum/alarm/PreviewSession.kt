@@ -76,6 +76,12 @@ data class PreviewUiState(
 class PreviewSession(
     context: Context,
     private val publisher: StatePublisher,
+    /**
+     * The scheduled next alarm, ISO-8601. Every publish carries the whole
+     * state object, so omitting this would blank `sensor.alarum_next_alarm`
+     * for as long as the preview ran.
+     */
+    private val nextAlarm: () -> String?,
 ) {
 
     private val audio = AudioEffector(context)
@@ -114,7 +120,11 @@ class PreviewSession(
         positionMs = 0L
         playing = true
         muted = false
-        speed = PreviewSpeed.default
+        // Home Assistant runs in wall-clock time: a light with a 290-second
+        // transition does not care that the app's clock is at 10x, it just
+        // gets restarted a tenth of the way in. Previewing the house means
+        // previewing at the speed the house runs at.
+        speed = if (publishToHa) PreviewSpeed.REAL else PreviewSpeed.default
         publishing = publishToHa
 
         audio.start()
@@ -220,6 +230,7 @@ class PreviewSession(
     fun setPublishing(p: Boolean) {
         if (publishing == p) return
         publishing = p
+        if (p) speed = PreviewSpeed.REAL
         haScope.launch {
             if (p) publisher.openSession() else publishIdle()
         }
@@ -264,6 +275,7 @@ class PreviewSession(
                     elapsedSec = elapsed,
                     alarmLabel = "Preview",
                     profile = line.profile.name,
+                    nextAlarm = nextAlarm(),
                     preview = true,
                 ),
             )
@@ -277,6 +289,7 @@ class PreviewSession(
     private suspend fun publishIdle() {
         publisher.publishLive(
             AlarumState(
+                nextAlarm = nextAlarm(),
                 ringing = "OFF",
                 stage = "idle",
                 stageSlug = "idle",

@@ -33,7 +33,14 @@ class AlarumViewModel(application: Application) : AndroidViewModel(application) 
      */
     private var previewSession: PreviewSession? = null
     val preview: PreviewSession
-        get() = previewSession ?: PreviewSession(app, app.publisher).also { previewSession = it }
+        get() = previewSession ?: PreviewSession(
+            context = app,
+            publisher = app.publisher,
+            nextAlarm = {
+                app.scheduler.nextAcross()?.second
+                    ?.format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+            },
+        ).also { previewSession = it }
 
     private val _entities = MutableStateFlow<List<HaEntity>>(emptyList())
     val entities: StateFlow<List<HaEntity>> = _entities.asStateFlow()

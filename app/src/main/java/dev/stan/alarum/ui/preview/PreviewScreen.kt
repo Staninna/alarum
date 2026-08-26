@@ -331,6 +331,13 @@ private fun Transport(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        if (state.publishing && state.speed != PreviewSpeed.REAL) {
+            Text(
+                "Home Assistant runs in real time. At ${state.speed.label} a light with a long transition is restarted before it has got anywhere, so the house will look like it is doing nothing. Drop to 1× to preview the house, or turn publishing off to rehearse just the phone.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
 
         HorizontalDivider()
         Text("Jump to", style = MaterialTheme.typography.titleSmall)
