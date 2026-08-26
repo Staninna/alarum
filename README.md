@@ -37,6 +37,14 @@ automation.
 | `sensor.alarum_elapsed` | seconds spent ringing |
 | `sensor.alarum_last_dismissed` | timestamp you last shut it up |
 
+`sensor.alarum_stage` and `binary_sensor.alarum_ringing` also carry a `preview`
+attribute, true when the in-app previewer is driving them rather than a real
+alarm. Condition on it in anything you would rather not have fire mid-afternoon:
+
+```jinja
+{{ not state_attr('sensor.alarum_stage', 'preview') }}
+```
+
 Home Assistant builds these ids from the **device name** plus the entity name and
 ignores `object_id` for discovered entities, so the device name is load-bearing:
 "Alarum" is what makes `sensor.alarum_stage`. Rename the device and every id moves
@@ -63,6 +71,29 @@ The last stage has no duration — it sustains until the alarm is dealt with.
 Three ship by default: *Gentle, then not*, *Sunrise only*, and *No messing about*.
 All are editable, and none of them contain a single entity id, so the app is not
 specific to any one house.
+
+## Previewing one
+
+The play button on a profile rehearses the whole ramp. It is on the profile row
+in the list, and in the editor, where it runs the draft rather than what is on
+disk, so you can hear a slider nudge before committing it.
+
+Same engine, same speakers and motors as 07:00, on a clock you own. Pause it,
+drag the scrubber, jump straight to the last stage, or run it at 60× so a
+twenty-five minute wake-up takes twenty-five seconds. Mute silences the tone and
+the vibration and leaves the screen and torch going, which is the half you can
+stand to preview at a desk.
+
+Three things are deliberately unfaithful, and the screen says so as it goes.
+
+- The system alarm volume is never commandeered. A preview that pins your alarm
+  stream to maximum and trusts a clean exit to put it back is a bad neighbour.
+- A stage's HA script is not run. Publishing a state is a claim about the world,
+  running a script is doing something to it.
+- Everything published carries `preview: true`.
+
+The preview stops when you leave the screen. That is the opposite of what a real
+alarm should do, and exactly right for this one.
 
 ## Layout
 

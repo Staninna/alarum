@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -39,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.stan.alarum.domain.Alarm
+import dev.stan.alarum.domain.EscalationProfile
 import dev.stan.alarum.domain.Schedule
 import dev.stan.alarum.ui.AlarumViewModel
 import java.time.Duration
@@ -52,6 +54,7 @@ fun AlarmListScreen(
     onEdit: (Alarm) -> Unit,
     onSettings: () -> Unit,
     onEditProfile: (String) -> Unit,
+    onPreviewProfile: (EscalationProfile) -> Unit,
 ) {
     val alarms by vm.alarms.collectAsStateWithLifecycle()
     val profiles by vm.profiles.collectAsStateWithLifecycle()
@@ -134,6 +137,12 @@ fun AlarmListScreen(
                             )
                         }
                         StagePreviewBar(p.stages.size)
+                        IconButton(onClick = { onPreviewProfile(p) }) {
+                            Icon(
+                                Icons.Default.PlayArrow,
+                                contentDescription = "Preview ${p.name}",
+                            )
+                        }
                     }
                 }
             }

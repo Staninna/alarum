@@ -89,7 +89,13 @@ class StatePublisher(
             RestEntity(
                 "binary_sensor.alarum_ringing",
                 { if (it.ringing == "ON") "on" else "off" },
-                { mapOf("friendly_name" to "Ringing", "icon" to "mdi:bell-ring") },
+                {
+                    mapOf(
+                        "friendly_name" to "Ringing",
+                        "icon" to "mdi:bell-ring",
+                        "preview" to it.preview.toString(),
+                    )
+                },
             ),
             RestEntity(
                 "sensor.alarum_stage",
@@ -105,6 +111,7 @@ class StatePublisher(
                         "elapsed_sec" to it.elapsedSec.toString(),
                         "alarm_label" to (it.alarmLabel ?: ""),
                         "profile" to (it.profile ?: ""),
+                        "preview" to it.preview.toString(),
                     )
                 },
             ),

@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dev.stan.alarum.AlarumApp
+import dev.stan.alarum.alarm.PreviewSession
 import dev.stan.alarum.data.AppSettings
 import dev.stan.alarum.data.HaSettings
 import dev.stan.alarum.domain.Alarm
@@ -24,6 +25,15 @@ class AlarumViewModel(application: Application) : AndroidViewModel(application) 
     val alarms: StateFlow<List<Alarm>> = repo.alarms
     val profiles: StateFlow<List<EscalationProfile>> = repo.profiles
     val settings: StateFlow<AppSettings> = repo.settings
+
+    /**
+     * Rehearsing a profile without arming an alarm. Owned by the view model so
+     * a rotation does not restart the ramp, and torn down with it so nothing
+     * outlives the screen that started it.
+     */
+    private var previewSession: PreviewSession? = null
+    val preview: PreviewSession
+        get() = previewSession ?: PreviewSession(app, app.publisher).also { previewSession = it }
 
     private val _entities = MutableStateFlow<List<HaEntity>>(emptyList())
     val entities: StateFlow<List<HaEntity>> = _entities.asStateFlow()
@@ -130,6 +140,11 @@ class AlarumViewModel(application: Application) : AndroidViewModel(application) 
 
     fun clearMessage() {
         _connectionMessage.value = null
+    }
+
+    override fun onCleared() {
+        previewSession?.stop()
+        super.onCleared()
     }
 
     /** Debug affordance: ring in a few seconds so the ramp can be tested awake. */

@@ -14,17 +14,29 @@ import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.stan.alarum.domain.Alarm
+import dev.stan.alarum.domain.EscalationProfile
 import dev.stan.alarum.ui.AlarumViewModel
 import dev.stan.alarum.ui.editor.AlarmEditorScreen
 import dev.stan.alarum.ui.editor.ProfileEditorScreen
 import dev.stan.alarum.ui.list.AlarmListScreen
+import dev.stan.alarum.ui.preview.PreviewScreen
 import dev.stan.alarum.ui.settings.SettingsScreen
 import dev.stan.alarum.ui.theme.AlarumTheme
 
 private sealed interface Screen {
     data object List : Screen
     data class EditAlarm(val alarm: Alarm) : Screen
-    data class EditProfile(val profileId: String) : Screen
+    /**
+     * [draft] carries unsaved edits back from the previewer, so going away to
+     * listen to a change does not throw the change away.
+     */
+    data class EditProfile(val profileId: String, val draft: EscalationProfile? = null) : Screen
+    /**
+     * Carries the profile itself rather than an id: the previewer runs what you
+     * are editing, which may never have been saved. [from] is where Back goes,
+     * since a preview can be started from the list or from mid-edit.
+     */
+    data class Preview(val profile: EscalationProfile, val from: Screen) : Screen
     data object Settings : Screen
 }
 
@@ -50,6 +62,7 @@ class MainActivity : ComponentActivity() {
                         onEdit = { screen = Screen.EditAlarm(it) },
                         onSettings = { screen = Screen.Settings },
                         onEditProfile = { screen = Screen.EditProfile(it) },
+                        onPreviewProfile = { screen = Screen.Preview(it, from = Screen.List) },
                     )
 
                     is Screen.EditAlarm -> AlarmEditorScreen(
@@ -62,7 +75,15 @@ class MainActivity : ComponentActivity() {
                     is Screen.EditProfile -> ProfileEditorScreen(
                         vm = vm,
                         profileId = s.profileId,
+                        draft = s.draft,
                         onDone = { screen = Screen.List },
+                        onPreview = { screen = Screen.Preview(it, from = s.copy(draft = it)) },
+                    )
+
+                    is Screen.Preview -> PreviewScreen(
+                        vm = vm,
+                        profile = s.profile,
+                        onDone = { screen = s.from },
                     )
 
                     Screen.Settings -> SettingsScreen(

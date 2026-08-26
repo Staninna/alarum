@@ -30,6 +30,12 @@ data class AlarumState(
     @SerialName("profile") val profile: String? = null,
     @SerialName("last_dismissed") val lastDismissed: String? = null,
     @SerialName("snoozed_until") val snoozedUntil: String? = null,
+    /**
+     * True while the in-app previewer is driving this, rather than a real
+     * alarm. Automations that would rather not open the curtains at 15:00 can
+     * condition on it; ones that want to be rehearsed can ignore it.
+     */
+    @SerialName("preview") val preview: Boolean = false,
 ) {
     companion object {
         fun slug(name: String): String =

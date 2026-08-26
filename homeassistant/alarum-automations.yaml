@@ -5,6 +5,16 @@
 # that matter are the sensor.alarum_* ones the app creates.
 #
 # Install with tools/apply-automations.py, or paste into automations.yaml.
+#
+# The app's previewer publishes the same states with a `preview` attribute set
+# to true, so you can rehearse a profile at 60x without the house joining in.
+# These examples deliberately have no such condition -- rehearsing them is the
+# point. Add one to anything you would rather not fire at three in the
+# afternoon:
+#
+#   condition:
+#     - condition: template
+#       value_template: "{{ not state_attr('sensor.alarum_stage', 'preview') }}"
 
 - id: alarum_stage_gentle
   alias: "Alarum - gentle: standing lamp barely on"

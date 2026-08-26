@@ -69,7 +69,10 @@ object HaDiscovery {
             ),
             cfg(
                 "binary_sensor", "ringing", "Ringing", "{{ value_json.ringing }}",
-                """"payload_on":"ON","payload_off":"OFF","icon":"mdi:bell-ring"""",
+                // Attributes as well as state, so an automation can check
+                // `preview` on the entity it already triggers off rather than
+                // reaching across to the stage sensor.
+                """"payload_on":"ON","payload_off":"OFF","icon":"mdi:bell-ring","json_attributes_topic":"$stateTopic"""",
             ),
             cfg(
                 "sensor", "stage", "Stage", "{{ value_json.stage_slug }}",

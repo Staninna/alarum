@@ -24,6 +24,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -65,7 +66,9 @@ import dev.stan.alarum.ui.components.SwitchRow
 fun ProfileEditorScreen(
     vm: AlarumViewModel,
     profileId: String,
+    draft: EscalationProfile? = null,
     onDone: () -> Unit,
+    onPreview: (EscalationProfile) -> Unit,
 ) {
     val profiles by vm.profiles.collectAsStateWithLifecycle()
     val settings by vm.settings.collectAsStateWithLifecycle()
@@ -75,7 +78,7 @@ fun ProfileEditorScreen(
         return
     }
 
-    var profile by remember(profileId) { mutableStateOf(source) }
+    var profile by remember(profileId, draft) { mutableStateOf(draft ?: source) }
     var expanded by remember { mutableStateOf<String?>(profile.stages.firstOrNull()?.id) }
 
     fun mutate(index: Int, block: (Stage) -> Stage) {
@@ -94,6 +97,11 @@ fun ProfileEditorScreen(
                     }
                 },
                 actions = {
+                    // Previews the draft rather than what is on disk, so a
+                    // slider nudge can be heard before it is committed.
+                    IconButton(onClick = { onPreview(profile) }) {
+                        Icon(Icons.Default.PlayArrow, contentDescription = "Preview")
+                    }
                     TextButton(onClick = { vm.duplicateProfile(profile) }) { Text("Duplicate") }
                     TextButton(onClick = { vm.saveProfile(profile); onDone() }) { Text("Save") }
                 },
