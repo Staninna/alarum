@@ -104,11 +104,28 @@ data class FlashSpec(
 
 @Serializable
 enum class DismissalMethod {
+    /**
+     * Retired. One tap kills the whole ramp, and a hand that has been awake for
+     * four seconds can manage one tap — which made every stage after the first
+     * one theoretical.
+     *
+     * Kept in the enum rather than deleted because profiles.json still contains
+     * the name, and an unknown enum value fails the whole parse. JsonStore
+     * swallows that and hands back the defaults, so deleting this would quietly
+     * replace every profile someone had made. [DismissalSpec.hardened] moves
+     * them off it instead.
+     */
     TAP,
+
+    /** Retired, for the same reason. Holding a button is not being awake. */
     LONG_PRESS,
+
     MATH,
     SHAKE,
     NFC;
+
+    /** False for the retired ones: they still parse, they are just not offered. */
+    val selectable: Boolean get() = this != TAP && this != LONG_PRESS
 
     val label: String
         get() = when (this) {
@@ -122,10 +139,25 @@ enum class DismissalMethod {
 
 @Serializable
 data class DismissalSpec(
-    val method: DismissalMethod = DismissalMethod.TAP,
+    val method: DismissalMethod = DismissalMethod.MATH,
     /** 1..5. Meaning depends on the method: digits, shake count, hold seconds. */
     val difficulty: Int = 1,
-)
+) {
+    /**
+     * The nearest equivalent that requires actually being awake.
+     *
+     * Applied to everything on load, so a profile saved before the easy methods
+     * were retired stops being dismissible in one thumb movement. Pure, so the
+     * mapping is a test rather than a surprise at 07:00.
+     */
+    fun hardened(): DismissalSpec = when (method) {
+        DismissalMethod.TAP ->
+            copy(method = DismissalMethod.MATH, difficulty = 1)
+        DismissalMethod.LONG_PRESS ->
+            copy(method = DismissalMethod.MATH, difficulty = maxOf(2, difficulty))
+        else -> this
+    }
+}
 
 /**
  * One step of the ramp. Stages run in order; the last one never ends, it just

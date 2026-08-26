@@ -523,7 +523,9 @@ private fun StageCard(
                     Text("Getting rid of it", style = MaterialTheme.typography.titleSmall)
                     Picker(
                         label = "Dismissal",
-                        options = DismissalMethod.entries,
+                        // Tap and long press are retired: one thumb movement
+                        // should not be able to end a thirteen-minute ramp.
+                        options = DismissalMethod.entries.filter { it.selectable },
                         selected = stage.dismissal.method,
                         optionLabel = {
                             if (it == DismissalMethod.NFC && !nfcEnrolled) "${it.label} (no tag enrolled)"

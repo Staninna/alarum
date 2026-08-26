@@ -66,6 +66,14 @@ start and end volume, a vibration pattern, screen brightness, torch strobe, a
 list of things to say out loud, a dismissal method with difficulty, whether
 snoozing is allowed, and optionally one HA script or scene to run on entry.
 
+Dismissal is maths, a shake, or an NFC tag. Tap and long press are retired: one
+thumb movement should not be able to end a thirteen-minute ramp, and a hand four
+seconds out of sleep can manage one tap, which made every stage after the first
+one theoretical. They still parse, because an unknown enum value fails the whole
+file and the store treats a failed parse as "here are the defaults" — deleting
+them would quietly replace every profile you had made. Anything still on one is
+moved up on load: a tap becomes one easy sum, a long press becomes two.
+
 The last stage has no duration — it sustains until the alarm is dealt with.
 
 Three ship by default: *Gentle, then not*, *Sunrise only*, and *No messing about*.

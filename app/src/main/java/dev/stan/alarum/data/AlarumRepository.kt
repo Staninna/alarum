@@ -49,7 +49,7 @@ class AlarumRepository(context: Context, private val scope: CoroutineScope) {
 
     suspend fun load() {
         _alarms.value = alarmStore.read()
-        _profiles.value = profileStore.read().ifEmpty { Defaults.all() }
+        _profiles.value = harden(profileStore.read().ifEmpty { Defaults.all() })
         _settings.value = settingsStore.read()
         _loaded.value = true
     }
@@ -83,6 +83,22 @@ class AlarumRepository(context: Context, private val scope: CoroutineScope) {
         val next = _profiles.value.map { if (it.id == profile.id) profile else it }
         _profiles.value = if (next.any { it.id == profile.id }) next else next + profile
         scope.launch { profileStore.write(_profiles.value) }
+    }
+
+    /**
+     * Move every stage off the retired one-touch dismissals.
+     *
+     * Done on load rather than by a version check, because the only thing that
+     * matters is whether a stage can still be killed with one thumb. Written
+     * back when anything changed, so Home Assistant and the editor agree with
+     * what will actually happen at 07:00.
+     */
+    private fun harden(profiles: List<EscalationProfile>): List<EscalationProfile> {
+        val fixed = profiles.map { p ->
+            p.copy(stages = p.stages.map { it.copy(dismissal = it.dismissal.hardened()) })
+        }
+        if (fixed != profiles) scope.launch { profileStore.write(fixed) }
+        return fixed
     }
 
     /**

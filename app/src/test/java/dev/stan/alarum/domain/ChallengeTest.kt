@@ -61,4 +61,52 @@ class ChallengeTest {
             else -> a.toInt() * b.toInt()
         }
     }
+
+    @Test
+    fun `the easy dismissals are retired, but still parse`() {
+        // Deleting them would fail the parse of any saved profile naming one,
+        // and JsonStore turns a failed parse into "here are the defaults".
+        assertTrue(DismissalMethod.entries.contains(DismissalMethod.TAP))
+        assertFalse(DismissalMethod.TAP.selectable)
+        assertFalse(DismissalMethod.LONG_PRESS.selectable)
+        assertTrue(DismissalMethod.MATH.selectable)
+        assertTrue(DismissalMethod.SHAKE.selectable)
+        assertTrue(DismissalMethod.NFC.selectable)
+    }
+
+    @Test
+    fun `hardening moves a stage off one-touch and leaves the rest alone`() {
+        assertEquals(
+            DismissalSpec(DismissalMethod.MATH, 1),
+            DismissalSpec(DismissalMethod.TAP).hardened(),
+        )
+        // A long press keeps whatever difficulty it had, floored so that
+        // "hold for one second" does not become "one easy sum".
+        assertEquals(
+            DismissalSpec(DismissalMethod.MATH, 2),
+            DismissalSpec(DismissalMethod.LONG_PRESS, 1).hardened(),
+        )
+        assertEquals(
+            DismissalSpec(DismissalMethod.MATH, 4),
+            DismissalSpec(DismissalMethod.LONG_PRESS, 4).hardened(),
+        )
+        val shake = DismissalSpec(DismissalMethod.SHAKE, 3)
+        assertEquals(shake, shake.hardened())
+    }
+
+    @Test
+    fun `hardening is idempotent`() {
+        val once = DismissalSpec(DismissalMethod.TAP).hardened()
+        assertEquals(once, once.hardened())
+    }
+
+    @Test
+    fun `no shipped stage can be killed with one thumb`() {
+        Defaults.all().flatMap { it.stages }.forEach { stage ->
+            assertTrue(
+                "${stage.name} still uses ${stage.dismissal.method}",
+                stage.dismissal.method.selectable,
+            )
+        }
+    }
 }
