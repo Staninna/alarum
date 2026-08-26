@@ -1,0 +1,140 @@
+package dev.stan.alarum.ui
+
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import dev.stan.alarum.AlarumApp
+import dev.stan.alarum.data.AppSettings
+import dev.stan.alarum.data.HaSettings
+import dev.stan.alarum.domain.Alarm
+import dev.stan.alarum.domain.EscalationProfile
+import dev.stan.alarum.ha.HaEntity
+import dev.stan.alarum.ha.HaResult
+import java.util.UUID
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+
+class AlarumViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val app = application as AlarumApp
+    private val repo = app.repository
+
+    val alarms: StateFlow<List<Alarm>> = repo.alarms
+    val profiles: StateFlow<List<EscalationProfile>> = repo.profiles
+    val settings: StateFlow<AppSettings> = repo.settings
+
+    private val _entities = MutableStateFlow<List<HaEntity>>(emptyList())
+    val entities: StateFlow<List<HaEntity>> = _entities.asStateFlow()
+
+    private val _connectionMessage = MutableStateFlow<String?>(null)
+    val connectionMessage: StateFlow<String?> = _connectionMessage.asStateFlow()
+
+    private val _busy = MutableStateFlow(false)
+    val busy: StateFlow<Boolean> = _busy.asStateFlow()
+
+    fun newAlarm(): Alarm = Alarm(
+        id = UUID.randomUUID().toString(),
+        hour = 7,
+        minute = 0,
+        days = dev.stan.alarum.domain.Schedule.weekdays,
+        profileId = profiles.value.firstOrNull()?.id
+            ?: dev.stan.alarum.domain.Defaults.GENTLE_ID,
+    )
+
+    fun save(alarm: Alarm) {
+        repo.upsertAlarm(alarm)
+        app.scheduler.cancel(alarm.id)
+        if (alarm.enabled) app.scheduler.schedule(alarm)
+        app.scheduler.publishNextAlarm()
+    }
+
+    fun delete(alarmId: String) {
+        app.scheduler.cancel(alarmId)
+        repo.deleteAlarm(alarmId)
+        app.scheduler.publishNextAlarm()
+    }
+
+    fun toggle(alarm: Alarm, enabled: Boolean) = save(alarm.copy(enabled = enabled, skipNext = false))
+
+    fun saveProfile(profile: EscalationProfile) {
+        repo.upsertProfile(profile)
+    }
+
+    fun deleteProfile(id: String) = repo.deleteProfile(id)
+
+    fun duplicateProfile(profile: EscalationProfile) {
+        repo.upsertProfile(
+            profile.copy(
+                id = UUID.randomUUID().toString(),
+                name = "${profile.name} copy",
+            ),
+        )
+    }
+
+    fun updateHa(block: (HaSettings) -> HaSettings) {
+        repo.updateSettings { it.copy(ha = block(it.ha)) }
+        app.mqtt.invalidateDiscovery()
+    }
+
+    fun setNodeId(id: String) {
+        repo.updateSettings { it.copy(nodeId = id.ifBlank { "alarum" }) }
+        app.mqtt.invalidateDiscovery()
+    }
+
+    fun enrollNfcTag(tagId: String?) = repo.updateSettings { it.copy(nfcTagId = tagId) }
+
+    fun testRest() {
+        _busy.value = true
+        viewModelScope.launch {
+            _connectionMessage.value = when (val r = app.haRest.ping()) {
+                is HaResult.Ok -> "REST: ${r.value}"
+                is HaResult.Failed -> "REST failed: ${r.reason}"
+            }
+            _busy.value = false
+        }
+    }
+
+    fun testMqtt() {
+        _busy.value = true
+        viewModelScope.launch {
+            _connectionMessage.value = "MQTT: " + app.mqtt.test()
+            _busy.value = false
+        }
+    }
+
+    /** Push discovery and current state now, so HA has the entities immediately. */
+    fun publishNow() {
+        app.mqtt.invalidateDiscovery()
+        app.scheduler.publishNextAlarm()
+        _connectionMessage.value = "Published via ${app.publisher.describeRoute()}"
+    }
+
+    /** Which route the state is currently taking, for the settings screen. */
+    fun route(): String = app.publisher.describeRoute()
+
+    fun loadEntities() {
+        _busy.value = true
+        viewModelScope.launch {
+            when (val r = app.haRest.states()) {
+                is HaResult.Ok -> {
+                    _entities.value = r.value
+                    _connectionMessage.value = "Loaded ${r.value.size} entities"
+                }
+                is HaResult.Failed -> _connectionMessage.value = "Could not load entities: ${r.reason}"
+            }
+            _busy.value = false
+        }
+    }
+
+    fun clearMessage() {
+        _connectionMessage.value = null
+    }
+
+    /** Debug affordance: ring in a few seconds so the ramp can be tested awake. */
+    fun testRing(alarm: Alarm) {
+        repo.upsertAlarm(alarm)
+        app.scheduler.snooze(alarm.id, 0)
+    }
+}

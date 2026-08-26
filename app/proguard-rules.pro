@@ -1,0 +1,7 @@
+-keepattributes *Annotation*, InnerClasses
+-dontwarn kotlinx.serialization.**
+-keep,includedescriptorclasses class dev.stan.alarum.**$$serializer { *; }
+-keepclassmembers class dev.stan.alarum.** { *** Companion; }
+-keepclasseswithmembers class dev.stan.alarum.** { kotlinx.serialization.KSerializer serializer(...); }
+-dontwarn org.eclipse.paho.**
+-keep class org.eclipse.paho.** { *; }

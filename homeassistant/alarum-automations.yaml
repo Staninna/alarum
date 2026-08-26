@@ -1,0 +1,192 @@
+# Example automations for Alarum.
+#
+# The app publishes what stage the alarm has reached; these decide what the
+# house does about it. Swap the entity ids for your own -- the only names
+# that matter are the sensor.alarum_* ones the app creates.
+#
+# Install with tools/apply-automations.py, or paste into automations.yaml.
+
+- id: alarum_stage_gentle
+  alias: "Alarum - gentle: standing lamp barely on"
+  description: >-
+    First stage. The lamp on the bed comes up from nothing over five minutes at
+    candlelight colour. If this works you never hear the rest.
+  mode: restart
+  trigger:
+    - platform: state
+      entity_id: sensor.alarum_stage
+      to: "gentle"
+  condition:
+    - condition: state
+      entity_id: person.you
+      state: "home"
+  action:
+    - action: light.turn_on
+      target:
+        entity_id: light.bedside_lamp
+      data:
+        brightness_pct: 1
+        color_temp_kelvin: 2000
+    - action: light.turn_on
+      target:
+        entity_id: light.bedside_lamp
+      data:
+        brightness_pct: 35
+        color_temp_kelvin: 2300
+        transition: 290
+
+- id: alarum_stage_rising
+  alias: "Alarum - rising: bedroom starts to wake up"
+  description: >-
+    Second stage. The standing lamp gets properly bright and the bed light joins
+    it, still warm. Nothing cold or blue yet.
+  mode: restart
+  trigger:
+    - platform: state
+      entity_id: sensor.alarum_stage
+      to: "rising"
+  condition:
+    - condition: state
+      entity_id: person.you
+      state: "home"
+  action:
+    - action: light.turn_on
+      target:
+        entity_id:
+          - light.bedside_lamp
+          - light.bedroom_main
+      data:
+        brightness_pct: 70
+        color_temp_kelvin: 2700
+        transition: 120
+
+- id: alarum_stage_insistent
+  alias: "Alarum - insistent: cold light and a voice"
+  description: >-
+    Third stage. Bedroom goes cold and full, the bathroom light comes on to
+    light the way out, and the satellite says something about it.
+  mode: restart
+  trigger:
+    - platform: state
+      entity_id: sensor.alarum_stage
+      to: "insistent"
+  condition:
+    - condition: state
+      entity_id: person.you
+      state: "home"
+  action:
+    - action: light.turn_on
+      target:
+        entity_id:
+          - light.bedside_lamp
+          - light.bedroom_main
+          - light.bedroom_secondary
+          - light.bedroom_group
+      data:
+        brightness_pct: 100
+        color_temp_kelvin: 5000
+        transition: 5
+    # The way out of the room, lit. Pairs with an NFC tag on the mirror.
+    - action: light.turn_on
+      target:
+        entity_id: light.bathroom
+      data:
+        brightness_pct: 100
+        color_temp_kelvin: 4500
+    - action: tts.speak
+      target:
+        entity_id: tts.piper
+      data:
+        media_player_entity_id: media_player.bedroom_speaker
+        cache: true
+        message: >-
+          Right. It is {{ now().strftime('%H:%M') }}. Time to get up.
+
+- id: alarum_stage_hostile
+  alias: "Alarum - hostile: the whole house objects"
+  description: >-
+    Final stage. Every light in the flat, full brightness, coldest white, and
+    flashing. Runs until the stage changes or two minutes pass, whichever comes
+    first, so a failure to publish cannot strobe the flat indefinitely.
+  mode: restart
+  trigger:
+    - platform: state
+      entity_id: sensor.alarum_stage
+      to: "hostile"
+  condition:
+    - condition: state
+      entity_id: person.you
+      state: "home"
+  action:
+    - action: light.turn_on
+      target:
+        entity_id: light.all_lights
+      data:
+        brightness_pct: 100
+        color_temp_kelvin: 6500
+        transition: 1
+    - action: tts.speak
+      target:
+        entity_id: tts.piper
+      data:
+        media_player_entity_id: media_player.bedroom_speaker
+        cache: false
+        message: "Get up. Get up. Get up."
+    - repeat:
+        while:
+          - condition: state
+            entity_id: sensor.alarum_stage
+            state: "hostile"
+          - condition: template
+            value_template: "{{ repeat.index <= 60 }}"
+        sequence:
+          - action: light.turn_on
+            target:
+              entity_id: light.all_lights
+            data:
+              brightness_pct: 20
+              transition: 0
+          - delay:
+              seconds: 1
+          - action: light.turn_on
+            target:
+              entity_id: light.all_lights
+            data:
+              brightness_pct: 100
+              color_temp_kelvin: 6500
+              transition: 0
+          - delay:
+              seconds: 1
+
+- id: alarum_dismissed
+  alias: "Alarum - dismissed: stand down"
+  description: >-
+    The alarm was dealt with. Bedroom goes dark again, the bathroom stays lit
+    for five minutes on the assumption that is where you are heading.
+  mode: restart
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.alarum_ringing
+      from: "on"
+      to: "off"
+  condition:
+    - condition: state
+      entity_id: person.you
+      state: "home"
+  action:
+    - action: light.turn_off
+      target:
+        entity_id:
+          - light.bedside_lamp
+          - light.bedroom_main
+          - light.bedroom_secondary
+          - light.bedroom_group
+      data:
+        transition: 3
+    - delay:
+        minutes: 5
+    - action: light.turn_off
+      target:
+        entity_id: light.bathroom
+      data:
+        transition: 5

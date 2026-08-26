@@ -1,0 +1,14 @@
+*.iml
+.gradle/
+.idea/
+.kotlin/
+.DS_Store
+build/
+captures/
+.externalNativeBuild
+.cxx
+local.properties
+.scratch/
+*.jks
+*.keystore
+*.p12
