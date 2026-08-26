@@ -20,7 +20,7 @@ object Defaults {
                 audio = AudioSpec(sound = Sounds.SOFT_CHIME, startLevel = 0f, endLevel = 0.15f),
                 haptics = HapticSpec(VibePattern.NONE),
                 flash = FlashSpec(),
-                dismissal = DismissalSpec(DismissalMethod.MATH, difficulty = 1),
+                dismissal = DismissalSpec(DismissalMethod.MATH, difficulty = 3),
                 allowSnooze = true,
             ),
             Stage(
@@ -30,7 +30,7 @@ object Defaults {
                 audio = AudioSpec(sound = Sounds.WARM_PAD, startLevel = 0.15f, endLevel = 0.40f),
                 haptics = HapticSpec(VibePattern.SOFT_PULSE, amplitude = 90),
                 flash = FlashSpec(screenBrightness = 0.35f),
-                dismissal = DismissalSpec(DismissalMethod.MATH, difficulty = 2),
+                dismissal = DismissalSpec(DismissalMethod.MATH, difficulty = 3),
                 allowSnooze = true,
             ),
             Stage(
@@ -42,7 +42,7 @@ object Defaults {
                 flash = FlashSpec(screenBrightness = 0.75f),
                 // In order, because this stage is an argument that builds.
                 speech = SpeechSpec(enabled = true, lines = Lines.firm, everySec = 60),
-                dismissal = DismissalSpec(DismissalMethod.MATH, difficulty = 2),
+                dismissal = DismissalSpec(DismissalMethod.MATH, difficulty = 4),
                 allowSnooze = true,
             ),
             Stage(
@@ -65,7 +65,7 @@ object Defaults {
                     everySec = 30,
                     shuffle = true,
                 ),
-                dismissal = DismissalSpec(DismissalMethod.MATH, difficulty = 4),
+                dismissal = DismissalSpec(DismissalMethod.MATH, difficulty = 5),
                 allowSnooze = false,
             ),
         ),
@@ -78,13 +78,13 @@ object Defaults {
             Stage(
                 id = "s1", name = "Fade in", durationSec = 15 * 60,
                 audio = AudioSpec(sound = Sounds.WARM_PAD, startLevel = 0f, endLevel = 0.35f),
-                dismissal = DismissalSpec(DismissalMethod.MATH, difficulty = 1),
+                dismissal = DismissalSpec(DismissalMethod.MATH, difficulty = 3),
             ),
             Stage(
                 id = "s2", name = "Awake", durationSec = 0,
                 audio = AudioSpec(sound = Sounds.SOFT_CHIME, startLevel = 0.35f, endLevel = 0.6f),
                 haptics = HapticSpec(VibePattern.SOFT_PULSE),
-                dismissal = DismissalSpec(DismissalMethod.MATH, difficulty = 1),
+                dismissal = DismissalSpec(DismissalMethod.MATH, difficulty = 3),
             ),
         ),
     )
@@ -99,7 +99,7 @@ object Defaults {
                 haptics = HapticSpec(VibePattern.PULSE, amplitude = 200),
                 flash = FlashSpec(screenBrightness = 1f),
                 speech = SpeechSpec(enabled = true, lines = Lines.firm, everySec = 30),
-                dismissal = DismissalSpec(DismissalMethod.MATH, difficulty = 3),
+                dismissal = DismissalSpec(DismissalMethod.MATH, difficulty = 4),
                 allowSnooze = false,
             ),
             Stage(

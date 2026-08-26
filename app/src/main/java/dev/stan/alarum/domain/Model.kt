@@ -140,22 +140,35 @@ enum class DismissalMethod {
 @Serializable
 data class DismissalSpec(
     val method: DismissalMethod = DismissalMethod.MATH,
-    /** 1..5. Meaning depends on the method: digits, shake count, hold seconds. */
-    val difficulty: Int = 1,
+    /**
+     * [MIN_DIFFICULTY]..5. Meaning depends on the method: how many sums, how
+     * many shakes.
+     *
+     * The floor is not 1. One two-digit sum is something you can do without
+     * ever really surfacing, and a dismissal you can complete while asleep is
+     * not a dismissal, it is a snooze button with extra steps.
+     */
+    val difficulty: Int = MIN_DIFFICULTY,
 ) {
     /**
      * The nearest equivalent that requires actually being awake.
      *
      * Applied to everything on load, so a profile saved before the easy methods
-     * were retired stops being dismissible in one thumb movement. Pure, so the
-     * mapping is a test rather than a surprise at 07:00.
+     * and the easy difficulties were retired stops being dismissible in one
+     * thumb movement. Pure, so the mapping is a test rather than a surprise at
+     * 07:00.
      */
-    fun hardened(): DismissalSpec = when (method) {
-        DismissalMethod.TAP ->
-            copy(method = DismissalMethod.MATH, difficulty = 1)
-        DismissalMethod.LONG_PRESS ->
-            copy(method = DismissalMethod.MATH, difficulty = maxOf(2, difficulty))
-        else -> this
+    fun hardened(): DismissalSpec {
+        val method = when (method) {
+            DismissalMethod.TAP, DismissalMethod.LONG_PRESS -> DismissalMethod.MATH
+            else -> method
+        }
+        return DismissalSpec(method, difficulty.coerceIn(MIN_DIFFICULTY, 5))
+    }
+
+    companion object {
+        /** Below this it is a formality rather than an obstacle. */
+        const val MIN_DIFFICULTY = 3
     }
 }
 

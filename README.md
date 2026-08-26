@@ -66,13 +66,21 @@ start and end volume, a vibration pattern, screen brightness, torch strobe, a
 list of things to say out loud, a dismissal method with difficulty, whether
 snoozing is allowed, and optionally one HA script or scene to run on entry.
 
-Dismissal is maths, a shake, or an NFC tag. Tap and long press are retired: one
-thumb movement should not be able to end a thirteen-minute ramp, and a hand four
-seconds out of sleep can manage one tap, which made every stage after the first
-one theoretical. They still parse, because an unknown enum value fails the whole
-file and the store treats a failed parse as "here are the defaults" — deleting
-them would quietly replace every profile you had made. Anything still on one is
-moved up on load: a tap becomes one easy sum, a long press becomes two.
+Dismissal is maths, a shake, or an NFC tag, and difficulty starts at 3 of 5.
+
+Tap and long press are retired: one thumb movement should not end a thirteen
+minute ramp, and a hand four seconds out of sleep can manage one tap, which made
+every stage after the first one theoretical. Difficulty 1 and 2 went with them —
+one two-digit sum is something you can do without ever really surfacing, and a
+dismissal you can complete while asleep is a snooze button with extra steps.
+
+The retired names still parse. An unknown enum value fails the whole file, and
+the store treats a failed parse as "here are the defaults" without saying so, so
+deleting them would have quietly replaced every profile you had made. Anything
+below the bar is moved up on load instead, and written back once.
+
+What that costs: waking naturally at 06:55 and wanting to cancel now means two
+sums. That is the trade, and it is the point.
 
 The last stage has no duration — it sustains until the alarm is dealt with.
 

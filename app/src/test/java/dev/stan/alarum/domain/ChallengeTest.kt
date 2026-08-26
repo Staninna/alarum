@@ -75,28 +75,48 @@ class ChallengeTest {
     }
 
     @Test
-    fun `hardening moves a stage off one-touch and leaves the rest alone`() {
+    fun `hardening moves a stage off one-touch and up to the floor`() {
         assertEquals(
-            DismissalSpec(DismissalMethod.MATH, 1),
-            DismissalSpec(DismissalMethod.TAP).hardened(),
+            DismissalSpec(DismissalMethod.MATH, DismissalSpec.MIN_DIFFICULTY),
+            DismissalSpec(DismissalMethod.TAP, 1).hardened(),
         )
-        // A long press keeps whatever difficulty it had, floored so that
-        // "hold for one second" does not become "one easy sum".
         assertEquals(
-            DismissalSpec(DismissalMethod.MATH, 2),
+            DismissalSpec(DismissalMethod.MATH, DismissalSpec.MIN_DIFFICULTY),
             DismissalSpec(DismissalMethod.LONG_PRESS, 1).hardened(),
         )
+        // Already hard enough is left exactly where it is.
         assertEquals(
-            DismissalSpec(DismissalMethod.MATH, 4),
-            DismissalSpec(DismissalMethod.LONG_PRESS, 4).hardened(),
+            DismissalSpec(DismissalMethod.MATH, 5),
+            DismissalSpec(DismissalMethod.LONG_PRESS, 5).hardened(),
         )
-        val shake = DismissalSpec(DismissalMethod.SHAKE, 3)
+        val shake = DismissalSpec(DismissalMethod.SHAKE, 4)
         assertEquals(shake, shake.hardened())
+        // The method survives even when only the difficulty was too low.
+        assertEquals(
+            DismissalSpec(DismissalMethod.SHAKE, DismissalSpec.MIN_DIFFICULTY),
+            DismissalSpec(DismissalMethod.SHAKE, 1).hardened(),
+        )
+    }
+
+    @Test
+    fun `nothing shipped is dismissible below the floor`() {
+        Defaults.all().flatMap { it.stages }.forEach { stage ->
+            assertTrue(
+                "${stage.name} is only difficulty ${stage.dismissal.difficulty}",
+                stage.dismissal.difficulty >= DismissalSpec.MIN_DIFFICULTY,
+            )
+        }
+    }
+
+    @Test
+    fun `the default spec is already hard`() {
+        assertEquals(DismissalSpec(), DismissalSpec().hardened())
+        assertTrue(DismissalSpec().difficulty >= DismissalSpec.MIN_DIFFICULTY)
     }
 
     @Test
     fun `hardening is idempotent`() {
-        val once = DismissalSpec(DismissalMethod.TAP).hardened()
+        val once = DismissalSpec(DismissalMethod.TAP, 1).hardened()
         assertEquals(once, once.hardened())
     }
 

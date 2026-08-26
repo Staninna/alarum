@@ -51,6 +51,7 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.stan.alarum.domain.DismissalMethod
+import dev.stan.alarum.domain.DismissalSpec
 import dev.stan.alarum.domain.EscalationProfile
 import dev.stan.alarum.domain.Defaults
 import dev.stan.alarum.domain.Sounds
@@ -544,24 +545,23 @@ private fun StageCard(
                             color = MaterialTheme.colorScheme.error,
                         )
                     }
-                    if (stage.dismissal.method != DismissalMethod.TAP) {
-                        LabeledSlider(
-                            label = "Difficulty",
-                            value = stage.dismissal.difficulty.toFloat(),
-                            onChange = {
-                                onChange(
-                                    stage.copy(
-                                        dismissal = stage.dismissal.copy(
-                                            difficulty = it.toInt().coerceIn(1, 5),
-                                        ),
+                    LabeledSlider(
+                        label = "Difficulty",
+                        value = stage.dismissal.difficulty.toFloat(),
+                        onChange = {
+                            onChange(
+                                stage.copy(
+                                    dismissal = stage.dismissal.copy(
+                                        difficulty = it.toInt()
+                                            .coerceIn(DismissalSpec.MIN_DIFFICULTY, 5),
                                     ),
-                                )
-                            },
-                            valueRange = 1f..5f,
-                            steps = 3,
-                            display = { "${it.toInt()} / 5" },
-                        )
-                    }
+                                ),
+                            )
+                        },
+                        valueRange = DismissalSpec.MIN_DIFFICULTY.toFloat()..5f,
+                        steps = 1,
+                        display = { "${it.toInt()} / 5" },
+                    )
                     SwitchRow(
                         label = "Allow snooze",
                         checked = stage.allowSnooze,
