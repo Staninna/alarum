@@ -57,6 +57,33 @@ class SpeechSpecTest {
     }
 
     @Test
+    fun `different seeds give different orders`() {
+        // The bug this pins: seeding from something constant per alarm gave a
+        // shuffle that was identical every morning, which is a sequence you can
+        // learn and therefore sleep through.
+        val spec = SpeechSpec(
+            enabled = true,
+            shuffle = true,
+            lines = (1..10).map { "line $it" },
+        )
+        val orders = (0 until 50).map { seed ->
+            (0 until 10).map { spec.lineAt(it, seed * 1000L) }
+        }.toSet()
+        assertTrue("50 seeds produced only ${orders.size} distinct orders", orders.size > 40)
+    }
+
+    @Test
+    fun `one seed is one order, however often it is asked`() {
+        val spec = three.copy(shuffle = true)
+        repeat(5) {
+            assertEquals(
+                listOf("Get up.", "Still there.", "Up. Now.").size,
+                (0..2).map { i -> spec.lineAt(i, 777L) }.distinct().size,
+            )
+        }
+    }
+
+    @Test
     fun `a single line is not shuffled into oblivion`() {
         val one = SpeechSpec(enabled = true, lines = listOf("Up."), shuffle = true)
         assertEquals("Up.", one.lineAt(0, 5L))

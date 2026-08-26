@@ -111,6 +111,12 @@ class PreviewSession(
     @Volatile private var muted = false
     @Volatile private var speed = PreviewSpeed.default
     @Volatile private var publishing = false
+    /**
+     * Fixed for one preview and different between them, so scrubbing back and
+     * forth is consistent while two previews in a row are not identical --
+     * otherwise a shuffled stage looks broken.
+     */
+    @Volatile private var sessionSeed = 0L
     @Volatile private var snapshotCount: Int? = null
     @Volatile private var snapshotProblem: String? = null
 
@@ -139,6 +145,7 @@ class PreviewSession(
         speed = if (publishToHa) PreviewSpeed.REAL else PreviewSpeed.default
         publishing = publishToHa
 
+        sessionSeed = System.currentTimeMillis()
         snapshotCount = null
         snapshotProblem = null
 
@@ -185,7 +192,7 @@ class PreviewSession(
                 // which already forces 1x, because Home Assistant runs in
                 // wall-clock time and so does a sentence.
                 if (publishing && playing) {
-                    val say = sayDue(stage.speech, spokenLines, lastSaidAtMs)
+                    val say = sayDue(stage.speech, spokenLines, lastSaidAtMs, es.stageIndex)
                     if (say != null) {
                         publish(line, es.stageIndex, stage.name, sec, es.isFinalStage, say)
                         spokenLines += 1
@@ -244,11 +251,11 @@ class PreviewSession(
     }
 
     /** The next line for the house, or null if it is not due yet. */
-    private fun sayDue(spec: SpeechSpec, spoken: Int, lastSaidAtMs: Long): String? {
+    private fun sayDue(spec: SpeechSpec, spoken: Int, lastSaidAtMs: Long, stageIndex: Int): String? {
         if (!spec.active) return null
         val gapMs = spec.everySec.coerceAtLeast(1) * 1000L
         if (spoken > 0 && System.currentTimeMillis() - lastSaidAtMs < gapMs) return null
-        return spec.lineAt(spoken, PREVIEW_SEED)
+        return spec.lineAt(spoken, sessionSeed + stageIndex * 7919L)
     }
 
     private fun speechNote(spec: SpeechSpec): String? = when {
@@ -460,9 +467,6 @@ class PreviewSession(
         const val RESTORE_SCENE = "alarum_preview_restore"
 
         const val DISMISS_EDGE_MS = 1200L
-
-        /** Fixed, so a preview reads the same lines in the same order every time. */
-        const val PREVIEW_SEED = 4711L
 
         val SILENT = HapticSpec(VibePattern.NONE)
     }

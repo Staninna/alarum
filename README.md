@@ -117,8 +117,9 @@ shipped profiles at roughly fifteen characters a second.
 
 A list rather than one line: a single sentence repeated every thirty seconds
 stops registering after the third time, which is exactly the failure mode the
-app exists to avoid. Shuffle is exhaustive — every line before any repeat — and
-seeded, so a rotation does not reshuffle mid-stage. Per stage, like everything
+app exists to avoid. Shuffle is exhaustive — every line before any repeat — and reseeded from the
+moment the alarm started, so it is a different order every morning and a
+different one per stage, while staying a stable permutation within one ring. Per stage, like everything
 else, so the first one can be civil and the last one need not be. **Suggest
 one** fills from a starter set that gets less polite as you keep pressing it,
 and **Send one now** publishes a single line so you can check the automation

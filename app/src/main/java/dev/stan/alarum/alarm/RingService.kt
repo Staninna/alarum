@@ -116,7 +116,7 @@ class RingService : Service() {
                     onStageEntered(a, profile.name, engine, state.stageIndex)
                 }
 
-                val due = sayDue(state.stage.speech, spokenLines, lastSaidAtMs)
+                val due = sayDue(state.stage.speech, spokenLines, lastSaidAtMs, state.stageIndex)
                 if (due != null) {
                     publishSay(a, profile.name, state, engine.stageCount, elapsed, due)
                     spokenLines += 1
@@ -168,14 +168,26 @@ class RingService : Service() {
         spec: dev.stan.alarum.domain.SpeechSpec,
         spoken: Int,
         lastSaidAtMs: Long,
+        stageIndex: Int,
     ): String? {
         if (!spec.active) return null
         val gapMs = spec.everySec.coerceAtLeast(1) * 1000L
         if (spoken > 0 && System.currentTimeMillis() - lastSaidAtMs < gapMs) return null
-        return spec.lineAt(spoken, saySeed())
+        return spec.lineAt(spoken, saySeed(stageIndex))
     }
 
-    private fun saySeed(): Long = (alarm?.id?.hashCode()?.toLong() ?: 0L) * 31
+    /**
+     * A different shuffle every morning, and a different one per stage.
+     *
+     * Seeded from when this ring started rather than from the alarm id, which
+     * was constant for the life of the alarm: shuffled, yes, but into the same
+     * order every single morning. A sequence you can learn is one you can sleep
+     * through, which defeats the entire reason for shuffling.
+     *
+     * Constant within one ring, so a pass through the list stays a permutation
+     * instead of repeating and skipping.
+     */
+    private fun saySeed(stageIndex: Int): Long = startedAt + stageIndex * 7919L
 
     /** Fired once when a stage begins: system volume takeover and the optional HA script. */
     private fun onStageEntered(
