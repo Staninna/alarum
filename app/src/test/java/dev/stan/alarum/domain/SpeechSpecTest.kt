@@ -70,6 +70,30 @@ class SpeechSpecTest {
     }
 
     @Test
+    fun `the sharp end of the shipped profiles talks, and the gentle one does not`() {
+        val brutal = Defaults.gentleThenBrutal().stages
+        assertFalse("Gentle should not be shouting", brutal[0].speech.active)
+        assertTrue("Insistent should talk", brutal[2].speech.active)
+        assertTrue("Hostile should talk", brutal.last().speech.active)
+        assertTrue("Hostile should shuffle", brutal.last().speech.shuffle)
+
+        // The whole point of this one is that it does not shout at you.
+        assertTrue(Defaults.sunriseOnly().stages.none { it.speech.active })
+
+        assertTrue(Defaults.noMessing().stages.all { it.speech.active })
+    }
+
+    @Test
+    fun `a talking stage has enough lines to not become wallpaper`() {
+        Defaults.all().flatMap { it.stages }.filter { it.speech.active }.forEach { stage ->
+            assertTrue(
+                "${stage.name} repeats too soon",
+                stage.speech.usableLines.size >= 4,
+            )
+        }
+    }
+
+    @Test
     fun `the shipped suggestions are all sayable`() {
         assertTrue(Defaults.Lines.all.isNotEmpty())
         assertTrue(Defaults.Lines.all.all { it.isNotBlank() })

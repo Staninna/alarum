@@ -40,6 +40,8 @@ object Defaults {
                 audio = AudioSpec(sound = Sounds.PULSE_TONE, startLevel = 0.40f, endLevel = 0.80f),
                 haptics = HapticSpec(VibePattern.PULSE, amplitude = 170),
                 flash = FlashSpec(screenBrightness = 0.75f),
+                // In order, because this stage is an argument that builds.
+                speech = SpeechSpec(enabled = true, lines = Lines.firm, everySec = 45),
                 dismissal = DismissalSpec(DismissalMethod.MATH, difficulty = 2),
                 allowSnooze = true,
             ),
@@ -55,6 +57,14 @@ object Defaults {
                 ),
                 haptics = HapticSpec(VibePattern.RELENTLESS, amplitude = 255),
                 flash = FlashSpec(screenBrightness = 1f, torchHz = 4f),
+                // Shuffled and frequent. Predictability is what lets you tune
+                // something out, which is the one thing this stage must not be.
+                speech = SpeechSpec(
+                    enabled = true,
+                    lines = Lines.blunt,
+                    everySec = 20,
+                    shuffle = true,
+                ),
                 dismissal = DismissalSpec(DismissalMethod.MATH, difficulty = 4),
                 allowSnooze = false,
             ),
@@ -88,6 +98,7 @@ object Defaults {
                 audio = AudioSpec(sound = Sounds.HARSH_BEEP, startLevel = 0.6f, endLevel = 0.9f),
                 haptics = HapticSpec(VibePattern.PULSE, amplitude = 200),
                 flash = FlashSpec(screenBrightness = 1f),
+                speech = SpeechSpec(enabled = true, lines = Lines.firm, everySec = 20),
                 dismissal = DismissalSpec(DismissalMethod.MATH, difficulty = 3),
                 allowSnooze = false,
             ),
@@ -99,6 +110,12 @@ object Defaults {
                 ),
                 haptics = HapticSpec(VibePattern.RELENTLESS, amplitude = 255),
                 flash = FlashSpec(screenBrightness = 1f, torchHz = 6f),
+                speech = SpeechSpec(
+                    enabled = true,
+                    lines = Lines.blunt,
+                    everySec = 15,
+                    shuffle = true,
+                ),
                 dismissal = DismissalSpec(DismissalMethod.MATH, difficulty = 5),
                 allowSnooze = false,
             ),
@@ -108,11 +125,12 @@ object Defaults {
     fun all() = listOf(gentleThenBrutal(), sunriseOnly(), noMessing())
 
     /**
-     * Starter lines for the speech editor's suggest button.
+     * What the house says, by temperament.
      *
-     * Split by temperament rather than offered as one pool: the whole point of
-     * the app is that the first stage and the last one are not the same kind of
-     * thing, and neither should what they say be.
+     * Split rather than offered as one pool because the whole thesis of the app
+     * is that the first stage and the last one are not the same kind of thing,
+     * and neither should what they say be. Doubles as the source for the
+     * editor's suggest button, which works down the list as you press it.
      */
     object Lines {
         val kind = listOf(
@@ -123,22 +141,24 @@ object Defaults {
         )
 
         val firm = listOf(
-            "Get up.",
-            "You are still in bed.",
-            "This is the part where you sit up.",
-            "Feet on the floor. That is all that is being asked.",
-            "The longer this goes on, the worse it gets.",
+            "Right. Up.",
+            "You are still horizontal.",
+            "This is the polite stage. It does not last.",
+            "Feet on the floor. That is the entire ask.",
+            "The day started without you.",
         )
 
         val blunt = listOf(
-            "Get out of bed.",
+            "Get up.",
             "Still lying there, then.",
+            "You set this alarm. This is your own doing.",
+            "Every minute of this was a choice.",
+            "The lights are on, the siren is on, and you are still in bed.",
+            "This does not stop. You know it does not stop.",
+            "Be honest. You are not going back to sleep.",
             "Everyone else managed it.",
-            "You set this alarm. You did this to yourself.",
-            "Every minute of this is a minute you chose.",
-            "This will not stop. You know it will not stop.",
-            "Be honest, you are not going back to sleep now.",
-            "Up. Now.",
+            "Pathetic effort so far.",
+            "Up. Now. Move.",
         )
 
         val all = kind + firm + blunt

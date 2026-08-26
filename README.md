@@ -103,6 +103,12 @@ two utterances; triggering on the text alone would silently swallow the second.
         message: "{{ states('sensor.alarum_say') }}"
 ```
 
+The shipped profiles already talk at the sharp end. *Gentle, then not* stays
+quiet through Gentle and Rising, turns argumentative at Insistent, and at
+Hostile shuffles ten blunt lines every twenty seconds. *No messing about* talks
+from the first stage. *Sunrise only* says nothing at all, because the entire
+point of that one is that it does not shout at you.
+
 A list rather than one line: a single sentence repeated every thirty seconds
 stops registering after the third time, which is exactly the failure mode the
 app exists to avoid. Shuffle is exhaustive — every line before any repeat — and
