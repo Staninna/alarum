@@ -46,6 +46,10 @@ class AlarumViewModel(application: Application) : AndroidViewModel(application) 
             haRest = app.haRest,
         ).also { previewSession = it }
 
+    /** Different every launch, so testing twice does not give the same reading. */
+    private val sampleSeed = System.currentTimeMillis()
+    private var sampleIndex = 0
+
     private val _speechProblem = MutableStateFlow<String?>(null)
     /** What happened the last time "Say one now" was pressed. */
     val speechProblem: StateFlow<String?> = _speechProblem.asStateFlow()
@@ -58,7 +62,10 @@ class AlarumViewModel(application: Application) : AndroidViewModel(application) 
      * broken — the phone's only job here is to publish.
      */
     fun sayNow(spec: SpeechSpec) {
-        val line = spec.lineAt(0, SAMPLE_SEED) ?: return
+        // Advances, so pressing it repeatedly walks the stage's order instead
+        // of asking for line zero over and over. It previously did the latter,
+        // which made a shuffled stage look like it had one thing to say.
+        val line = spec.lineAt(sampleIndex++, sampleSeed) ?: return
         if (!settings.value.ha.mqttConfigured && !settings.value.ha.restConfigured) {
             _speechProblem.value =
                 "Home Assistant is not configured, so there is nowhere to send it."
@@ -211,7 +218,4 @@ class AlarumViewModel(application: Application) : AndroidViewModel(application) 
         app.scheduler.snooze(alarm.id, 0)
     }
 
-    private companion object {
-        const val SAMPLE_SEED = 11L
-    }
 }

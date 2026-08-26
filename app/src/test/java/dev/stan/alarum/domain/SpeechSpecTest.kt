@@ -2,6 +2,7 @@ package dev.stan.alarum.domain
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -142,6 +143,47 @@ class SpeechSpecTest {
                 stage.speech.everySec > secondsToSay,
             )
         }
+    }
+
+    /** What RingService does: one seed for the ring, an index that counts up. */
+    private fun runStage(stage: Stage, utterances: Int, ringStartedAt: Long): List<String> =
+        (0 until utterances).mapNotNull {
+            stage.speech.lineAt(it, ringStartedAt + stage.name.hashCode())
+        }
+
+    @Test
+    fun `a whole hostile stage never repeats itself`() {
+        val hostile = Defaults.gentleThenBrutal().stages.last()
+        val pool = hostile.speech.usableLines.size
+        val said = runStage(hostile, pool, ringStartedAt = 1_700_000_000_000L)
+        assertEquals("said $pool lines", pool, said.size)
+        assertEquals("but only ${said.distinct().size} were different", pool, said.distinct().size)
+    }
+
+    @Test
+    fun `two mornings do not sound the same`() {
+        val hostile = Defaults.gentleThenBrutal().stages.last()
+        val monday = runStage(hostile, 8, ringStartedAt = 1_700_000_000_000L)
+        val tuesday = runStage(hostile, 8, ringStartedAt = 1_700_086_400_000L)
+        assertNotEquals(monday, tuesday)
+    }
+
+    @Test
+    fun `every talking stage shipped is shuffled`() {
+        // A fixed order is a fixed order however many lines are in it: learn the
+        // sequence once and it stops being something you have to listen to.
+        Defaults.all().flatMap { it.stages }.filter { it.speech.active }.forEach { stage ->
+            assertTrue("${stage.name} plays its lines in a fixed order", stage.speech.shuffle)
+        }
+    }
+
+    @Test
+    fun `pressing the test button repeatedly walks the list`() {
+        // The bug: it asked for index 0 every time, so a stage with twenty-six
+        // things to say demonstrated exactly one of them.
+        val hostile = Defaults.gentleThenBrutal().stages.last()
+        val presses = (0 until 6).map { hostile.speech.lineAt(it, 12345L) }
+        assertEquals(6, presses.distinct().size)
     }
 
     @Test

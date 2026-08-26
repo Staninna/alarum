@@ -40,8 +40,12 @@ object Defaults {
                 audio = AudioSpec(sound = Sounds.PULSE_TONE, startLevel = 0.40f, endLevel = 0.80f),
                 haptics = HapticSpec(VibePattern.PULSE, amplitude = 170),
                 flash = FlashSpec(screenBrightness = 0.75f),
-                // In order, because this stage is an argument that builds.
-                speech = SpeechSpec(enabled = true, lines = Lines.firm, everySec = 60),
+                speech = SpeechSpec(
+                    enabled = true,
+                    lines = Lines.firm,
+                    everySec = 60,
+                    shuffle = true,
+                ),
                 dismissal = DismissalSpec(DismissalMethod.MATH, difficulty = 4),
                 allowSnooze = true,
             ),
@@ -98,7 +102,12 @@ object Defaults {
                 audio = AudioSpec(sound = Sounds.HARSH_BEEP, startLevel = 0.6f, endLevel = 0.9f),
                 haptics = HapticSpec(VibePattern.PULSE, amplitude = 200),
                 flash = FlashSpec(screenBrightness = 1f),
-                speech = SpeechSpec(enabled = true, lines = Lines.firm, everySec = 30),
+                speech = SpeechSpec(
+                    enabled = true,
+                    lines = Lines.firm,
+                    everySec = 30,
+                    shuffle = true,
+                ),
                 dismissal = DismissalSpec(DismissalMethod.MATH, difficulty = 4),
                 allowSnooze = false,
             ),
