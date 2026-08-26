@@ -35,6 +35,20 @@ data class AlarumState(
      * alarm. Automations that would rather not open the curtains at 15:00 can
      * condition on it; ones that want to be rehearsed can ignore it.
      */
+    /**
+     * The line the house should say right now, or null when there is nothing
+     * to say. Home Assistant picks the speaker and the voice.
+     */
+    @SerialName("say") val say: String? = null,
+    /**
+     * Changes on every utterance, including a repeat of the same words.
+     *
+     * Epoch milliseconds rather than a counter, so it is monotonic without any
+     * shared state and survives the app being restarted. An automation triggers
+     * on this attribute changing; triggering on the text itself would silently
+     * skip a line that happened to follow itself.
+     */
+    @SerialName("say_seq") val saySeq: Long = 0,
     @SerialName("preview") val preview: Boolean = false,
 ) {
     companion object {

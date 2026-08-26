@@ -103,13 +103,24 @@ class RingService : Service() {
             launchRingScreen()
 
             var lastStage = -1
+            var spokenLines = 0
+            var lastSaidAtMs = 0L
             while (isActive) {
                 val elapsed = ((System.currentTimeMillis() - startedAt) / 1000L).toInt()
                 val state = engine.stateAt(elapsed)
 
                 if (state.stageIndex != lastStage) {
                     lastStage = state.stageIndex
+                    // Each stage gets its own script, from the top.
+                    spokenLines = 0
                     onStageEntered(a, profile.name, engine, state.stageIndex)
+                }
+
+                val due = sayDue(state.stage.speech, spokenLines, lastSaidAtMs)
+                if (due != null) {
+                    publishSay(a, profile.name, state, engine.stageCount, elapsed, due)
+                    spokenLines += 1
+                    lastSaidAtMs = System.currentTimeMillis()
                 }
 
                 audio.update(state.stage.audio.sound, state.audioLevel)
@@ -146,6 +157,26 @@ class RingService : Service() {
         }
     }
 
+    /**
+     * The next line to hand the house, or null if it is not time yet.
+     *
+     * The first line of a stage goes out the moment the stage begins; every
+     * later one waits out the gap. Nothing here speaks — the phone publishes
+     * and Home Assistant decides which speaker says it.
+     */
+    private fun sayDue(
+        spec: dev.stan.alarum.domain.SpeechSpec,
+        spoken: Int,
+        lastSaidAtMs: Long,
+    ): String? {
+        if (!spec.active) return null
+        val gapMs = spec.everySec.coerceAtLeast(1) * 1000L
+        if (spoken > 0 && System.currentTimeMillis() - lastSaidAtMs < gapMs) return null
+        return spec.lineAt(spoken, saySeed())
+    }
+
+    private fun saySeed(): Long = (alarm?.id?.hashCode()?.toLong() ?: 0L) * 31
+
     /** Fired once when a stage begins: system volume takeover and the optional HA script. */
     private fun onStageEntered(
         a: Alarm,
@@ -168,6 +199,37 @@ class RingService : Service() {
             enrolledTagId = app.repository.settings.value.nfcTagId,
             seed = a.id.hashCode().toLong() * 31 + stageIndex,
         )
+
+    /** A normal state publish that also carries a line for the house to say. */
+    private fun publishSay(
+        a: Alarm,
+        profileName: String,
+        state: dev.stan.alarum.domain.EscalationState,
+        totalStages: Int,
+        elapsed: Int,
+        line: String,
+    ) {
+        haScope.launch {
+            app.publisher.publishLive(
+                AlarumState(
+                    nextAlarm = app.scheduler.nextAcross()?.second
+                        ?.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
+                    ringing = "ON",
+                    stage = state.stage.name,
+                    stageSlug = AlarumState.slug(state.stage.name),
+                    stageIndex = state.stageIndex,
+                    totalStages = totalStages,
+                    finalStage = state.isFinalStage,
+                    elapsedSec = elapsed,
+                    alarmLabel = a.label.ifBlank { "Alarm" },
+                    alarmId = a.id,
+                    profile = profileName,
+                    say = line,
+                    saySeq = System.currentTimeMillis(),
+                ),
+            )
+        }
+    }
 
     private fun publishState(
         a: Alarm,

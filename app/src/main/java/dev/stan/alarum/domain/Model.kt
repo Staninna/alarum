@@ -51,6 +51,49 @@ data class HapticSpec(
     val amplitude: Int = 128,
 )
 
+/**
+ * What the house should say, and how often it should say it again.
+ *
+ * The phone never speaks. It publishes the line and Home Assistant decides
+ * which speaker says it, in whose voice, and at what volume — the same division
+ * as everything else here, and the reason this carries no entity id.
+ *
+ * A list rather than one line because the point is not to be informative, it
+ * is to be impossible to lie next to. [lineAt] is pure so the cycling can be
+ * unit tested instead of discovered at 07:00.
+ */
+@Serializable
+data class SpeechSpec(
+    val enabled: Boolean = false,
+    val lines: List<String> = emptyList(),
+    /** Seconds between one line being published and the next. */
+    val everySec: Int = 30,
+    /** Shuffled, but exhaustively: every line is heard before any repeats. */
+    val shuffle: Boolean = false,
+) {
+    val usableLines: List<String> get() = lines.filter { it.isNotBlank() }
+
+    val active: Boolean get() = enabled && usableLines.isNotEmpty()
+
+    /**
+     * The [index]th thing to say, or null if there is nothing to say.
+     *
+     * [seed] keeps a shuffled order stable across a configuration change, so
+     * the ordering does not reset every time the screen rotates.
+     */
+    fun lineAt(index: Int, seed: Long): String? {
+        val usable = usableLines
+        if (usable.isEmpty()) return null
+        val i = index.mod(usable.size)
+        if (!shuffle || usable.size == 1) return usable[i]
+        // A fresh permutation per pass through the list, rather than an
+        // independent random pick each time, which would repeat and skip.
+        val pass = index.floorDiv(usable.size)
+        val order = usable.indices.shuffled(kotlin.random.Random(seed + pass * 31L))
+        return usable[order[i]]
+    }
+}
+
 @Serializable
 data class FlashSpec(
     /** Drive the screen to this brightness, 0..1. Zero leaves the screen alone. */
@@ -96,6 +139,7 @@ data class Stage(
     val audio: AudioSpec = AudioSpec(),
     val haptics: HapticSpec = HapticSpec(),
     val flash: FlashSpec = FlashSpec(),
+    val speech: SpeechSpec = SpeechSpec(),
     val dismissal: DismissalSpec = DismissalSpec(),
     val allowSnooze: Boolean = true,
     /**

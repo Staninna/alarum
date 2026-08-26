@@ -9,12 +9,15 @@ import dev.stan.alarum.data.AppSettings
 import dev.stan.alarum.data.HaSettings
 import dev.stan.alarum.domain.Alarm
 import dev.stan.alarum.domain.EscalationProfile
+import dev.stan.alarum.domain.SpeechSpec
+import dev.stan.alarum.ha.AlarumState
 import dev.stan.alarum.ha.HaEntity
 import dev.stan.alarum.ha.HaResult
 import java.util.UUID
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class AlarumViewModel(application: Application) : AndroidViewModel(application) {
@@ -42,6 +45,42 @@ class AlarumViewModel(application: Application) : AndroidViewModel(application) 
             },
             haRest = app.haRest,
         ).also { previewSession = it }
+
+    private val _speechProblem = MutableStateFlow<String?>(null)
+    /** What happened the last time "Say one now" was pressed. */
+    val speechProblem: StateFlow<String?> = _speechProblem.asStateFlow()
+
+    /**
+     * Hand one line to the house right now, without running a stage.
+     *
+     * Marked as a preview so an automation can tell a test from a morning. If
+     * nothing says it, the automation is missing rather than the app being
+     * broken — the phone's only job here is to publish.
+     */
+    fun sayNow(spec: SpeechSpec) {
+        val line = spec.lineAt(0, SAMPLE_SEED) ?: return
+        if (!settings.value.ha.mqttConfigured && !settings.value.ha.restConfigured) {
+            _speechProblem.value =
+                "Home Assistant is not configured, so there is nowhere to send it."
+            return
+        }
+        viewModelScope.launch {
+            app.publisher.publish(
+                AlarumState(
+                    ringing = "OFF",
+                    stage = "idle",
+                    stageSlug = "idle",
+                    stageIndex = -1,
+                    say = line,
+                    saySeq = System.currentTimeMillis(),
+                    preview = true,
+                ),
+            )
+            _speechProblem.value =
+                "Sent “$line” via ${app.publisher.describeRoute()}. " +
+                "If nothing said it, the automation is what is missing."
+        }
+    }
 
     private val _entities = MutableStateFlow<List<HaEntity>>(emptyList())
     val entities: StateFlow<List<HaEntity>> = _entities.asStateFlow()
@@ -159,5 +198,9 @@ class AlarumViewModel(application: Application) : AndroidViewModel(application) 
     fun testRing(alarm: Alarm) {
         repo.upsertAlarm(alarm)
         app.scheduler.snooze(alarm.id, 0)
+    }
+
+    private companion object {
+        const val SAMPLE_SEED = 11L
     }
 }

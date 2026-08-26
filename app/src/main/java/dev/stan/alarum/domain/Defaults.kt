@@ -107,6 +107,43 @@ object Defaults {
 
     fun all() = listOf(gentleThenBrutal(), sunriseOnly(), noMessing())
 
+    /**
+     * Starter lines for the speech editor's suggest button.
+     *
+     * Split by temperament rather than offered as one pool: the whole point of
+     * the app is that the first stage and the last one are not the same kind of
+     * thing, and neither should what they say be.
+     */
+    object Lines {
+        val kind = listOf(
+            "Good morning.",
+            "It is time to get up.",
+            "The day has started. You are welcome to join it.",
+            "Gently now. Up you get.",
+        )
+
+        val firm = listOf(
+            "Get up.",
+            "You are still in bed.",
+            "This is the part where you sit up.",
+            "Feet on the floor. That is all that is being asked.",
+            "The longer this goes on, the worse it gets.",
+        )
+
+        val blunt = listOf(
+            "Get out of bed.",
+            "Still lying there, then.",
+            "Everyone else managed it.",
+            "You set this alarm. You did this to yourself.",
+            "Every minute of this is a minute you chose.",
+            "This will not stop. You know it will not stop.",
+            "Be honest, you are not going back to sleep now.",
+            "Up. Now.",
+        )
+
+        val all = kind + firm + blunt
+    }
+
     fun newStage(index: Int) = Stage(
         id = "stage-${System.nanoTime()}",
         name = "Stage ${index + 1}",

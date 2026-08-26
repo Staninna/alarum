@@ -433,6 +433,19 @@ private fun Phone(s: PreviewUiState) {
                 } else "",
         )
         Fact("Snooze", if (s.allowSnooze) "Allowed" else "Refused")
+        Fact(
+            "House says",
+            if (!s.speech.active) "Nothing"
+            else "${s.speech.usableLines.size} lines, every ${s.speech.everySec}s" +
+                if (s.speech.shuffle) ", shuffled" else "",
+        )
+        if (s.speechNote != null) {
+            Text(
+                s.speechNote,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         if (s.commandeersVolume) {
             Text(
                 "This stage takes over the system alarm volume when it fires for real. The preview does not, so what you are hearing is the app's own gain against your current volume.",

@@ -63,14 +63,58 @@ on the other:
 
 A profile is a list of stages. Each stage has a duration, a synthesised tone with
 start and end volume, a vibration pattern, screen brightness, torch strobe, a
-dismissal method with difficulty, whether snoozing is allowed, and optionally one
-HA script or scene to run on entry.
+list of things to say out loud, a dismissal method with difficulty, whether
+snoozing is allowed, and optionally one HA script or scene to run on entry.
 
 The last stage has no duration — it sustains until the alarm is dealt with.
 
 Three ship by default: *Gentle, then not*, *Sunrise only*, and *No messing about*.
 All are editable, and none of them contain a single entity id, so the app is not
 specific to any one house.
+
+## Talking
+
+A stage can carry a list of lines and a gap. The phone does not say them — it
+publishes one at a time as `sensor.alarum_say`, and an automation decides which
+speaker says it, in whose voice, at what volume. Same division as everything
+else here, which is why this feature contains no entity id either.
+
+Trigger on the **`say_seq` attribute**, not on the state. It is epoch
+milliseconds and changes on every utterance, so two identical lines in a row are
+two utterances; triggering on the text alone would silently swallow the second.
+
+```yaml
+- id: alarum_say
+  alias: "Alarum - say it out loud"
+  mode: queued
+  trigger:
+    - platform: state
+      entity_id: sensor.alarum_say
+      attribute: say_seq
+  condition:
+    - condition: template
+      value_template: "{{ states('sensor.alarum_say') not in ['idle', 'unknown'] }}"
+  action:
+    - action: tts.speak
+      target:
+        entity_id: tts.google_en_com
+      data:
+        media_player_entity_id: media_player.bedroom
+        message: "{{ states('sensor.alarum_say') }}"
+```
+
+A list rather than one line: a single sentence repeated every thirty seconds
+stops registering after the third time, which is exactly the failure mode the
+app exists to avoid. Shuffle is exhaustive — every line before any repeat — and
+seeded, so a rotation does not reshuffle mid-stage. Per stage, like everything
+else, so the first one can be civil and the last one need not be. **Suggest
+one** fills from a starter set that gets less polite as you keep pressing it,
+and **Send one now** publishes a single line so you can check the automation
+without waiting for a stage.
+
+In the previewer, lines go out only while publishing is on, which already means
+1×. A sentence takes as long as it takes, no matter how fast the app's clock is
+running.
 
 ## Previewing one
 

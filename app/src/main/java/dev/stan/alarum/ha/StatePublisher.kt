@@ -116,6 +116,18 @@ class StatePublisher(
                 },
             ),
             RestEntity(
+                "sensor.alarum_say",
+                { it.say ?: "idle" },
+                {
+                    mapOf(
+                        "friendly_name" to "Say",
+                        "icon" to "mdi:account-voice",
+                        "say_seq" to it.saySeq.toString(),
+                        "preview" to it.preview.toString(),
+                    )
+                },
+            ),
+            RestEntity(
                 "sensor.alarum_stage_index",
                 { it.stageIndex.toString() },
                 { mapOf("friendly_name" to "Escalation stage index", "icon" to "mdi:numeric") },

@@ -200,3 +200,31 @@
         entity_id: light.bathroom
       data:
         transition: 5
+
+- id: alarum_say
+  alias: "Alarum - say it out loud"
+  description: >-
+    The app publishes a line at a time; this is what actually speaks it. Trigger
+    on say_seq rather than the state: it changes on every utterance, so the same
+    line twice running counts twice. Triggering on the text would swallow the
+    second one.
+  mode: queued
+  max: 10
+  trigger:
+    - platform: state
+      entity_id: sensor.alarum_say
+      attribute: say_seq
+  condition:
+    - condition: template
+      value_template: "{{ states('sensor.alarum_say') not in ['idle', 'unknown', 'unavailable'] }}"
+    - condition: state
+      entity_id: person.you
+      state: "home"
+  action:
+    - action: tts.speak
+      target:
+        entity_id: tts.google_en_com
+      data:
+        media_player_entity_id: media_player.bedroom
+        cache: true
+        message: "{{ states('sensor.alarum_say') }}"

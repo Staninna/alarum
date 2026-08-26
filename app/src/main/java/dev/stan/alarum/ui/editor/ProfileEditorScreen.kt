@@ -54,6 +54,7 @@ import dev.stan.alarum.domain.DismissalMethod
 import dev.stan.alarum.domain.EscalationProfile
 import dev.stan.alarum.domain.Defaults
 import dev.stan.alarum.domain.Sounds
+import dev.stan.alarum.domain.SpeechSpec
 import dev.stan.alarum.domain.Stage
 import dev.stan.alarum.domain.VibePattern
 import dev.stan.alarum.ui.AlarumViewModel
@@ -72,6 +73,7 @@ fun ProfileEditorScreen(
 ) {
     val profiles by vm.profiles.collectAsStateWithLifecycle()
     val settings by vm.settings.collectAsStateWithLifecycle()
+    val speechProblem by vm.speechProblem.collectAsStateWithLifecycle()
     val source = profiles.firstOrNull { it.id == profileId } ?: profiles.firstOrNull()
     if (source == null) {
         onDone()
@@ -151,6 +153,8 @@ fun ProfileEditorScreen(
                     nfcEnrolled = !settings.nfcTagId.isNullOrBlank(),
                     onToggle = { expanded = if (expanded == stage.id) null else stage.id },
                     onChange = { mutate(index) { _ -> it } },
+                    onSpeak = { vm.sayNow(it) },
+                    speechProblem = speechProblem,
                     onMove = { delta ->
                         val target = index + delta
                         if (target in profile.stages.indices) {
@@ -239,6 +243,120 @@ private fun Timeline(profile: EscalationProfile) {
     }
 }
 
+/**
+ * The talking stage.
+ *
+ * A list rather than one line, because a single sentence repeated every thirty
+ * seconds stops registering after the third time, and the whole point is that
+ * it should not stop registering.
+ *
+ * Nothing here makes a sound on the phone. The lines are published and the
+ * house says them, which is why there is no voice picker: that is a Home
+ * Assistant setting, on a Home Assistant speaker.
+ */
+@Composable
+private fun SpeechSection(
+    spec: SpeechSpec,
+    problem: String?,
+    onChange: (SpeechSpec) -> Unit,
+    onSpeak: (SpeechSpec) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text("Talking", style = MaterialTheme.typography.titleSmall)
+        SwitchRow(
+            label = "Have the house say things",
+            checked = spec.enabled,
+            onChange = { onChange(spec.copy(enabled = it)) },
+            help = "Published as sensor.alarum_say. Your automation picks the speaker and the voice — the phone stays quiet.",
+        )
+
+        if (!spec.enabled) return@Column
+
+        spec.lines.forEachIndexed { i, line ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value = line,
+                    onValueChange = { text ->
+                        onChange(
+                            spec.copy(
+                                lines = spec.lines.toMutableList().apply { this[i] = text },
+                            ),
+                        )
+                    },
+                    label = { Text("Line ${i + 1}") },
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(onClick = {
+                    onChange(spec.copy(lines = spec.lines.filterIndexed { j, _ -> j != i }))
+                }) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Remove line ${i + 1}",
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
+        }
+
+        if (spec.lines.isEmpty()) {
+            Text(
+                "Nothing to say yet. Add a line, or take a suggestion.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            TextButton(onClick = { onChange(spec.copy(lines = spec.lines + "")) }) {
+                Text("Add a line")
+            }
+            TextButton(
+                onClick = {
+                    // Whichever suggestion is not already in the list, so
+                    // pressing it repeatedly builds a set rather than a stutter.
+                    val next = Defaults.Lines.all.firstOrNull { it !in spec.lines }
+                    if (next != null) onChange(spec.copy(lines = spec.lines + next))
+                },
+            ) { Text("Suggest one") }
+            Spacer(Modifier.weight(1f))
+            TextButton(
+                onClick = { onSpeak(spec) },
+                enabled = spec.active,
+            ) { Text("Send one now") }
+        }
+
+        if (problem != null) {
+            Text(
+                problem,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+
+        LabeledSlider(
+            label = "Wait between lines",
+            value = spec.everySec.toFloat(),
+            onChange = { onChange(spec.copy(everySec = it.toInt().coerceAtLeast(3))) },
+            valueRange = 3f..180f,
+            display = {
+                val v = it.toInt()
+                if (v < 60) "${v}s" else "%d:%02d".format(v / 60, v % 60)
+            },
+        )
+        SwitchRow(
+            label = "Shuffle",
+            checked = spec.shuffle,
+            onChange = { onChange(spec.copy(shuffle = it)) },
+            help = "Random order, but every line is heard before any repeats",
+        )
+        Text(
+            "Voice, speaker and volume are Home Assistant's business. Trigger on the say_seq attribute rather than the text, or two identical lines in a row count as one.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
 @Composable
 private fun StageCard(
     stage: Stage,
@@ -246,8 +364,10 @@ private fun StageCard(
     total: Int,
     expanded: Boolean,
     nfcEnrolled: Boolean,
+    speechProblem: String?,
     onToggle: () -> Unit,
     onChange: (Stage) -> Unit,
+    onSpeak: (SpeechSpec) -> Unit,
     onMove: (Int) -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -389,6 +509,14 @@ private fun StageCard(
                         onChange = { onChange(stage.copy(flash = stage.flash.copy(torchHz = it))) },
                         valueRange = 0f..10f,
                         display = { if (it < 0.2f) "Off" else "%.1f Hz".format(it) },
+                    )
+
+                    HorizontalDivider()
+                    SpeechSection(
+                        spec = stage.speech,
+                        problem = speechProblem,
+                        onChange = { onChange(stage.copy(speech = it)) },
+                        onSpeak = onSpeak,
                     )
 
                     HorizontalDivider()

@@ -79,6 +79,13 @@ object HaDiscovery {
                 """"icon":"mdi:stairs-up","json_attributes_topic":"$stateTopic"""",
             ),
             cfg(
+                "sensor", "say", "Say", "{{ value_json.say if value_json.say else 'idle' }}",
+                // Attributes carry say_seq, which is what an automation should
+                // trigger on: the same line twice running is two utterances,
+                // and the state alone would not change between them.
+                """"icon":"mdi:account-voice","json_attributes_topic":"$stateTopic"""",
+            ),
+            cfg(
                 "sensor", "stage_index", "Stage index",
                 "{{ value_json.stage_index }}",
                 """"icon":"mdi:numeric","state_class":"measurement"""",

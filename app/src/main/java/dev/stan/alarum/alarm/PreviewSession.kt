@@ -5,6 +5,7 @@ import android.util.Log
 import dev.stan.alarum.domain.DismissalSpec
 import dev.stan.alarum.domain.EscalationProfile
 import dev.stan.alarum.domain.HapticSpec
+import dev.stan.alarum.domain.SpeechSpec
 import dev.stan.alarum.domain.PreviewSpeed
 import dev.stan.alarum.domain.PreviewTimeline
 import dev.stan.alarum.domain.VibePattern
@@ -48,6 +49,9 @@ data class PreviewUiState(
     val dismissal: DismissalSpec,
     val allowSnooze: Boolean,
     val haScript: String?,
+    val speech: SpeechSpec,
+    /** Null when this stage says nothing, otherwise why it is or is not talking. */
+    val speechNote: String?,
     val playing: Boolean,
     val atEnd: Boolean,
     val muted: Boolean,
@@ -148,6 +152,8 @@ class PreviewSession(
             var lastTickNs = System.nanoTime()
             var lastStage = -1
             var lastPublishMs = 0L
+            var spokenLines = 0
+            var lastSaidAtMs = 0L
 
             while (isActive) {
                 val nowNs = System.nanoTime()
@@ -167,12 +173,30 @@ class PreviewSession(
                 val es = line.stateAt(sec)
                 val stage = es.stage
 
+                val stageChanged = es.stageIndex != lastStage
+                if (stageChanged) {
+                    lastStage = es.stageIndex
+                    spokenLines = 0
+                    lastSaidAtMs = 0L
+                }
+
+                // Nothing is spoken on the phone. A line is published and the
+                // house says it, so this only happens when publishing is on --
+                // which already forces 1x, because Home Assistant runs in
+                // wall-clock time and so does a sentence.
+                if (publishing && playing) {
+                    val say = sayDue(stage.speech, spokenLines, lastSaidAtMs)
+                    if (say != null) {
+                        publish(line, es.stageIndex, stage.name, sec, es.isFinalStage, say)
+                        spokenLines += 1
+                        lastSaidAtMs = System.currentTimeMillis()
+                        lastPublishMs = System.currentTimeMillis()
+                    }
+                }
+
                 audio.update(stage.audio.sound, if (muted) 0f else es.audioLevel)
                 haptics.apply(if (muted) SILENT else stage.haptics)
                 torch.apply(stage.flash.torchHz)
-
-                val stageChanged = es.stageIndex != lastStage
-                if (stageChanged) lastStage = es.stageIndex
 
                 val nowMs = System.currentTimeMillis()
                 if (publishing && (stageChanged || nowMs - lastPublishMs >= PUBLISH_EVERY_MS)) {
@@ -202,6 +226,8 @@ class PreviewSession(
                     dismissal = stage.dismissal,
                     allowSnooze = stage.allowSnooze,
                     haScript = stage.haScript?.takeIf { it.isNotBlank() },
+                    speech = stage.speech,
+                    speechNote = speechNote(stage.speech),
                     playing = playing,
                     atEnd = positionMs >= totalMs,
                     muted = muted,
@@ -215,6 +241,20 @@ class PreviewSession(
                 delay(TICK_MS)
             }
         }
+    }
+
+    /** The next line for the house, or null if it is not due yet. */
+    private fun sayDue(spec: SpeechSpec, spoken: Int, lastSaidAtMs: Long): String? {
+        if (!spec.active) return null
+        val gapMs = spec.everySec.coerceAtLeast(1) * 1000L
+        if (spoken > 0 && System.currentTimeMillis() - lastSaidAtMs < gapMs) return null
+        return spec.lineAt(spoken, PREVIEW_SEED)
+    }
+
+    private fun speechNote(spec: SpeechSpec): String? = when {
+        !spec.active -> null
+        !publishing -> "Publishing is off, so nothing is sent for the house to say."
+        else -> null
     }
 
     fun setPlaying(play: Boolean) {
@@ -362,6 +402,7 @@ class PreviewSession(
         stageName: String,
         elapsed: Int,
         finalStage: Boolean,
+        say: String? = null,
     ) {
         haScope.launch {
             publisher.publishLive(
@@ -381,6 +422,8 @@ class PreviewSession(
                     alarmLabel = "Preview",
                     profile = line.profile.name,
                     nextAlarm = nextAlarm(),
+                    say = say,
+                    saySeq = if (say != null) System.currentTimeMillis() else 0L,
                     preview = true,
                 ),
             )
@@ -417,6 +460,9 @@ class PreviewSession(
         const val RESTORE_SCENE = "alarum_preview_restore"
 
         const val DISMISS_EDGE_MS = 1200L
+
+        /** Fixed, so a preview reads the same lines in the same order every time. */
+        const val PREVIEW_SEED = 4711L
 
         val SILENT = HapticSpec(VibePattern.NONE)
     }
