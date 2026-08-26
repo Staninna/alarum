@@ -41,6 +41,12 @@ android {
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
+            // So a dev build is identifiable on the phone rather than being a
+            // second icon called "Alarum" reporting the same version as the one
+            // that actually shipped. Version.parse refuses anything non-numeric,
+            // which means a dev build never offers to update itself into a
+            // release -- correct, and worth knowing before you go looking.
+            versionNameSuffix = "-dev"
             isMinifyEnabled = false
         }
         release {

@@ -1,0 +1,4 @@
+<resources>
+    <!-- Overrides the main source set, so the launcher can tell the two apart. -->
+    <string name="app_name">Alarum dev</string>
+</resources>
