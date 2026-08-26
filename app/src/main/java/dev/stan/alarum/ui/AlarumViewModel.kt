@@ -40,6 +40,7 @@ class AlarumViewModel(application: Application) : AndroidViewModel(application) 
                 app.scheduler.nextAcross()?.second
                     ?.format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME)
             },
+            haRest = app.haRest,
         ).also { previewSession = it }
 
     private val _entities = MutableStateFlow<List<HaEntity>>(emptyList())

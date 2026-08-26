@@ -12,6 +12,8 @@ import dev.stan.alarum.effect.AudioEffector
 import dev.stan.alarum.effect.HapticEffector
 import dev.stan.alarum.effect.TorchEffector
 import dev.stan.alarum.ha.AlarumState
+import dev.stan.alarum.ha.HaRest
+import dev.stan.alarum.ha.HaResult
 import dev.stan.alarum.ha.StatePublisher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -52,6 +54,9 @@ data class PreviewUiState(
     val speed: PreviewSpeed,
     val publishing: Boolean,
     val route: String,
+    /** Lights photographed at the start, null when nothing was captured. */
+    val snapshotCount: Int?,
+    val snapshotProblem: String?,
 )
 
 /**
@@ -82,6 +87,7 @@ class PreviewSession(
      * for as long as the preview ran.
      */
     private val nextAlarm: () -> String?,
+    private val haRest: HaRest,
 ) {
 
     private val audio = AudioEffector(context)
@@ -101,6 +107,8 @@ class PreviewSession(
     @Volatile private var muted = false
     @Volatile private var speed = PreviewSpeed.default
     @Volatile private var publishing = false
+    @Volatile private var snapshotCount: Int? = null
+    @Volatile private var snapshotProblem: String? = null
 
     val isRunning: Boolean get() = loop != null
 
@@ -127,8 +135,14 @@ class PreviewSession(
         speed = if (publishToHa) PreviewSpeed.REAL else PreviewSpeed.default
         publishing = publishToHa
 
+        snapshotCount = null
+        snapshotProblem = null
+
         audio.start()
-        if (publishing) haScope.launch { publisher.openSession() }
+        if (publishing) {
+            haScope.launch { publisher.openSession() }
+            haScope.launch { snapshotHouse() }
+        }
 
         loop = scope.launch {
             var lastTickNs = System.nanoTime()
@@ -194,6 +208,8 @@ class PreviewSession(
                     speed = speed,
                     publishing = publishing,
                     route = publisher.describeRoute(),
+                    snapshotCount = snapshotCount,
+                    snapshotProblem = snapshotProblem,
                 )
 
                 delay(TICK_MS)
@@ -232,7 +248,13 @@ class PreviewSession(
         publishing = p
         if (p) speed = PreviewSpeed.REAL
         haScope.launch {
-            if (p) publisher.openSession() else publishIdle()
+            if (p) {
+                publisher.openSession()
+                snapshotHouse()
+            } else {
+                restoreHouse()
+                publishIdle()
+            }
         }
     }
 
@@ -250,10 +272,88 @@ class PreviewSession(
 
         if (wasPublishing) {
             haScope.launch {
+                // Idle first, restore second: going idle can set an automation
+                // going, and the photograph should have the last word on what
+                // the room looks like.
                 publishIdle()
+                restoreHouse()
                 publisher.closeSession()
             }
         }
+    }
+
+    /**
+     * Fire the stand-down for real, on purpose.
+     *
+     * The only thing in the previewer that moves `binary_sensor.alarum_ringing`,
+     * and it does the whole arc — on, then off — because the dismissal
+     * automation triggers on that edge and there is no edge without both ends.
+     * Anything it sets is meant to stay, so the lights are not put back.
+     */
+    fun dismiss() {
+        val line = timeline
+        val wasPublishing = publishing
+        val stageName = _state.value?.stageName ?: "idle"
+        val index = _state.value?.stageIndex ?: -1
+
+        // Leaving the screen calls stop() straight after this, which would
+        // restore the lights and undo the dismissal we just ran on purpose.
+        // Standing down from here is this method's job alone.
+        publishing = false
+        snapshotCount = null
+
+        loop?.cancel()
+        loop = null
+        timeline = null
+        playing = false
+        audio.stop()
+        haptics.stop()
+        torch.stop()
+        _state.value = null
+
+        if (!wasPublishing) return
+        haScope.launch {
+            publisher.publishLive(
+                AlarumState(
+                    nextAlarm = nextAlarm(),
+                    ringing = "ON",
+                    stage = stageName,
+                    stageSlug = AlarumState.slug(stageName),
+                    stageIndex = index,
+                    totalStages = line?.engine?.stageCount ?: 0,
+                    alarmLabel = "Preview",
+                    profile = line?.profile?.name,
+                    preview = true,
+                ),
+            )
+            // Long enough for Home Assistant to register the "on" before the
+            // "off", short enough that nobody is standing there waiting.
+            delay(DISMISS_EDGE_MS)
+            publishIdle()
+            publisher.closeSession()
+        }
+    }
+
+    /**
+     * Photograph the lights so [restoreHouse] can put them back. Best effort:
+     * a preview whose house cannot be captured still runs, it just says so.
+     */
+    private suspend fun snapshotHouse() {
+        when (val r = haRest.snapshotLights(RESTORE_SCENE)) {
+            is HaResult.Ok -> {
+                snapshotCount = r.value
+                snapshotProblem = if (r.value == 0) "Home Assistant reported no lights" else null
+            }
+            is HaResult.Failed -> {
+                snapshotCount = null
+                snapshotProblem = r.reason
+            }
+        }
+    }
+
+    private suspend fun restoreHouse() {
+        if ((snapshotCount ?: 0) <= 0) return
+        haRest.restoreScene(RESTORE_SCENE)
     }
 
     private fun publish(
@@ -266,7 +366,12 @@ class PreviewSession(
         haScope.launch {
             publisher.publishLive(
                 AlarumState(
-                    ringing = "ON",
+                    // Deliberately OFF for the whole preview. Any on-to-off
+                    // edge would fire the stand-down automation on the way out,
+                    // and a rehearsal that triggers things you cannot untrigger
+                    // is not a rehearsal. Stage state is what automations key
+                    // off anyway; the dismissal is its own explicit button.
+                    ringing = "OFF",
                     stage = stageName,
                     stageSlug = AlarumState.slug(stageName),
                     stageIndex = index,
@@ -307,6 +412,11 @@ class PreviewSession(
 
         /** Wall clock, not preview clock — 60× must not mean 60× the publishes. */
         const val PUBLISH_EVERY_MS = 1000L
+
+        /** Reused every preview, so HA collects one spare scene rather than dozens. */
+        const val RESTORE_SCENE = "alarum_preview_restore"
+
+        const val DISMISS_EDGE_MS = 1200L
 
         val SILENT = HapticSpec(VibePattern.NONE)
     }

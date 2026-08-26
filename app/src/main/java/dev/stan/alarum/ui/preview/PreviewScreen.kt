@@ -35,6 +35,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
@@ -167,7 +168,11 @@ fun PreviewScreen(
                     stageNames = profile.stages.map { it.name },
                 )
                 Phone(s)
-                House(s, onPublish = session::setPublishing)
+                House(
+                    s,
+                    onPublish = session::setPublishing,
+                    onDismiss = { session.dismiss(); onDone() },
+                )
             }
             Spacer(Modifier.height(96.dp))
         }
@@ -440,7 +445,11 @@ private fun Phone(s: PreviewUiState) {
 
 /** What Home Assistant is being told, and what it is not. */
 @Composable
-private fun House(s: PreviewUiState, onPublish: (Boolean) -> Unit) {
+private fun House(
+    s: PreviewUiState,
+    onPublish: (Boolean) -> Unit,
+    onDismiss: () -> Unit,
+) {
     SectionCard(title = "What the house sees") {
         SwitchRow(
             label = "Publish to Home Assistant",
@@ -452,6 +461,36 @@ private fun House(s: PreviewUiState, onPublish: (Boolean) -> Unit) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             AssistChip(onClick = {}, enabled = false, label = { Text("stage: ${s.stageSlug}") })
             AssistChip(onClick = {}, enabled = false, label = { Text("stage_index: ${s.stageIndex}") })
+        }
+        if (s.publishing) {
+            HorizontalDivider()
+            Text(
+                when {
+                    s.snapshotProblem != null ->
+                        "Could not photograph the lights: ${s.snapshotProblem}. They will be left however this preview leaves them."
+                    s.snapshotCount != null ->
+                        "${s.snapshotCount} lights photographed. Stopping puts every one of them back exactly as it was."
+                    else -> "Photographing the lights…"
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = if (s.snapshotProblem != null) MaterialTheme.colorScheme.error
+                else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                "Nothing else fires on the way out. The alarm never reads as ringing during a preview, so your stand-down automation is not triggered by leaving.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            HorizontalDivider()
+            Text("Rehearsing the stand-down", style = MaterialTheme.typography.titleSmall)
+            Text(
+                "The one thing here that is not a rehearsal. This publishes the real ringing on-to-off edge, so whatever you have hung off a dismissal runs for real, and the lights are left where it puts them rather than being put back.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            OutlinedButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
+                Text("Dismiss for real")
+            }
         }
         if (s.haScript != null) {
             Text(

@@ -90,7 +90,21 @@ transition does not care that the app's clock is at 10×, it just gets restarted
 a tenth of the way in and looks like nothing happened. Preview the phone fast,
 preview the house at the speed the house runs at.
 
-Three things are deliberately unfaithful, and the screen says so as it goes.
+A preview leaves nothing behind. Starting one photographs every `light.*` in
+Home Assistant with `scene.create`, and stopping puts them all back with
+`scene.turn_on`, so a rehearsal at three in the afternoon does not end with the
+bedroom stuck at 70%. That needs the REST route configured, URL and token: MQTT
+is publish-only and cannot read a light or call a service.
+
+`binary_sensor.alarum_ringing` stays off for the whole preview, which is what
+makes stopping inert. An on-to-off edge would fire your stand-down automation on
+the way out, including anything it has queued behind a `delay:`, and that is not
+something a preview gets to do to you. Stage state is what automations trigger
+off anyway. When you do want to rehearse the dismissal, **Dismiss for real** in
+the house card publishes the whole edge on purpose and leaves the lights where
+that automation puts them.
+
+Three more things are deliberately unfaithful, and the screen says so as it goes.
 
 - The system alarm volume is never commandeered. A preview that pins your alarm
   stream to maximum and trusts a clean exit to put it back is a bad neighbour.

@@ -5,7 +5,10 @@ import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -126,6 +129,42 @@ class HaRest(private val settings: () -> HaSettings) {
 
     private fun escape(v: String): String =
         v.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", " ")
+
+    /**
+     * Photograph every light, so a preview can put the house back exactly as it
+     * found it.
+     *
+     * Leans on Home Assistant's own `scene.create`, which snapshots each
+     * entity's full state — brightness, colour temperature, RGB, effect — and
+     * knows how to replay it per integration. Rebuilding that here would mean
+     * reimplementing a light platform badly.
+     *
+     * Returns how many lights were captured.
+     */
+    suspend fun snapshotLights(sceneId: String): HaResult<Int> {
+        val lights = when (val r = states()) {
+            is HaResult.Failed -> return r
+            is HaResult.Ok -> r.value.filter { it.domain == "light" }.map { it.entityId }
+        }
+        if (lights.isEmpty()) return HaResult.Ok(0)
+        val payload = buildJsonObject {
+            put("scene_id", JsonPrimitive(sceneId))
+            put("snapshot_entities", JsonArray(lights.map { JsonPrimitive(it) }))
+        }
+        return when (val r = callService("scene", "create", null, payload)) {
+            is HaResult.Failed -> r
+            is HaResult.Ok -> HaResult.Ok(lights.size)
+        }
+    }
+
+    /** Puts the lights back where [snapshotLights] found them. */
+    suspend fun restoreScene(sceneId: String): HaResult<Unit> = callService(
+        domain = "scene",
+        service = "turn_on",
+        entityId = "scene.$sceneId",
+        // No fade: this is an undo, not an effect.
+        extra = buildJsonObject { put("transition", JsonPrimitive(0)) },
+    )
 
     /** Runs a `script.x` or `scene.y` entity, whichever was configured. */
     suspend fun runEntity(entityId: String): HaResult<Unit> {
