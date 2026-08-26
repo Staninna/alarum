@@ -67,6 +67,11 @@ class AlarumViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             app.publisher.publish(
                 AlarumState(
+                    // Every publish carries the whole state object, so omitting
+                    // this would blank sensor.alarum_next_alarm every time the
+                    // test button was pressed.
+                    nextAlarm = app.scheduler.nextAcross()?.second
+                        ?.format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME),
                     ringing = "OFF",
                     stage = "idle",
                     stageSlug = "idle",
