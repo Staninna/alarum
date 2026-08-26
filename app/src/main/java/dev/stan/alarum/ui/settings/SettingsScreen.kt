@@ -261,6 +261,22 @@ fun SettingsScreen(vm: AlarumViewModel, onDone: () -> Unit) {
 
             UpdatesSection()
 
+            SectionCard("Profiles") {
+                Text(
+                    "New versions sometimes change what the shipped profiles do — what they say, how hard they are to dismiss. Editing one keeps your copy forever, which is right until you want the new one.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                OutlinedButton(onClick = vm::restoreDefaultProfiles) {
+                    Text("Restore the shipped profiles")
+                }
+                Text(
+                    "Replaces the three that ship and leaves anything you made yourself alone. Your alarms keep working: they point at profile ids, and those do not change.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
             SectionCard("Reliability") {
                 Text(
                     "Some manufacturers kill background apps regardless of what Android promises about exact alarms. Exempting Alarum from battery optimisation is the difference between waking up and explaining why you did not.",

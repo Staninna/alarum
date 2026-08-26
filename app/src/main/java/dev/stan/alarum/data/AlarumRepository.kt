@@ -85,6 +85,23 @@ class AlarumRepository(context: Context, private val scope: CoroutineScope) {
         scope.launch { profileStore.write(_profiles.value) }
     }
 
+    /**
+     * Put the shipped profiles back.
+     *
+     * Alarms keep pointing at profile ids, and the defaults keep their ids
+     * across versions, so an alarm set to "Gentle, then not" still is one
+     * afterwards. Anything you made yourself is kept — this restores the three
+     * that ship, it does not wipe the list.
+     */
+    fun restoreDefaultProfiles(): Int {
+        val shipped = Defaults.all()
+        val shippedIds = shipped.map { it.id }.toSet()
+        val mine = _profiles.value.filterNot { it.id in shippedIds }
+        _profiles.value = shipped + mine
+        scope.launch { profileStore.write(_profiles.value) }
+        return shipped.size
+    }
+
     fun deleteProfile(id: String) {
         if (_profiles.value.size <= 1) return
         _profiles.value = _profiles.value.filterNot { it.id == id }

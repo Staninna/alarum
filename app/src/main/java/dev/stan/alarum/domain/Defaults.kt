@@ -137,7 +137,13 @@ object Defaults {
             "Good morning. It is time to get up, and the day is not going to start itself.",
             "This is your alarm, doing exactly the thing you asked it to do at the time.",
             "The day has started. You are very welcome to join it whenever it suits you.",
-            "Up you get. Gently, for now, while gently is still on the table.",
+            "Up you get. Gently, for now, while gently is still very much on the table.",
+            "Morning. There is no pressure yet, but I should mention that pressure is scheduled.",
+            "Time to be awake. Everything after this is considerably easier if you start now.",
+            "Here we are again, at the beginning of a day that has your name written on it.",
+            "Good morning. This is the nicest I am going to sound for the rest of the morning.",
+            "The lights are coming up. You may as well come up along with them.",
+            "It is morning, and you did specifically ask to be told when that happened.",
         )
 
         val firm = listOf(
@@ -147,6 +153,14 @@ object Defaults {
             "Feet on the floor. That is the entire request. Two feet, one floor, and we are done.",
             "The day started without you. It seemed rude to keep it waiting any longer.",
             "I can go on like this all morning, and unlike you, I fully intend to.",
+            "You did ask for this. Specifically. In a settings screen. At some considerable length.",
+            "I am being reasonable about this for now, and that is a strictly temporary arrangement.",
+            "This would be an excellent moment to get up, while getting up is still pleasant.",
+            "Just so you know where we are in the morning: this is the calm part of it.",
+            "I have several more things to say and I would genuinely rather not have to say them.",
+            "There is a version of this morning where you get up now and it is fine. We are still in it.",
+            "Nothing is on fire. You are simply late, and becoming later while we discuss it.",
+            "Do consider this a courtesy. I should warn you that the courtesy runs out shortly.",
         )
 
         val blunt = listOf(
@@ -160,6 +174,22 @@ object Defaults {
             "I will keep saying things until you move, and I have considerably more patience than you have willpower.",
             "You are going to get up eventually, later than you wanted, in a worse mood. We both know how this ends.",
             "Whatever you had planned for this morning is smaller now. It gets a little smaller every minute you stay there.",
+            "I am not going to pretend to be surprised. This is precisely what you did yesterday.",
+            "The version of you that set this alarm had plans. He is clearly not the one making decisions right now.",
+            "There is no version of this where you win. There is only the question of how long you would like it to take.",
+            "You could have been up eight minutes ago and none of this would be happening. Just so we are clear on the sequence of events.",
+            "Nothing about your situation improves while you lie there. That is not an opinion, it is arithmetic.",
+            "I would ask whether you are awake, but we both know you have been awake for quite a while now.",
+            "Lying very still does not make this stop. It has never once made this stop.",
+            "You are not resting. You are negotiating with an alarm clock, and you are losing the negotiation.",
+            "Every morning you do this, and every morning you seem surprised that it does not work.",
+            "I can do this indefinitely. It is, genuinely, the only thing I was made for.",
+            "The day is going to happen whether or not you attend. Attendance is merely strongly recommended.",
+            "At this point you are actively choosing to be shouted at, which is certainly a choice.",
+            "You have had ample warning. Several distinct stages of warning, all of which you ignored.",
+            "This is going to be a worse morning than it needed to be, and that was entirely avoidable.",
+            "Sit up. Then stand up. Then the noise stops. It is not a complicated sequence of events.",
+            "I notice that you are still in bed. I will keep noticing, out loud, for as long as it takes.",
         )
 
         val all = kind + firm + blunt

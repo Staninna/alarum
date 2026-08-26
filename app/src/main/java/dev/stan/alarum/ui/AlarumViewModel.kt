@@ -126,6 +126,12 @@ class AlarumViewModel(application: Application) : AndroidViewModel(application) 
 
     fun deleteProfile(id: String) = repo.deleteProfile(id)
 
+    fun restoreDefaultProfiles() {
+        val n = repo.restoreDefaultProfiles()
+        _connectionMessage.value =
+            "Restored $n shipped profiles. Anything you made yourself was left alone."
+    }
+
     fun duplicateProfile(profile: EscalationProfile) {
         repo.upsertProfile(
             profile.copy(
