@@ -83,6 +83,7 @@ class StatePublisher(
                         "friendly_name" to "Next alarm",
                         "icon" to "mdi:alarm",
                         "label" to (it.nextAlarmLabel ?: ""),
+                        "awake_by" to (it.awakeBy ?: ""),
                     )
                 },
             ),

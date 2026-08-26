@@ -40,7 +40,7 @@ class AlarumViewModel(application: Application) : AndroidViewModel(application) 
             context = app,
             publisher = app.publisher,
             nextAlarm = {
-                app.scheduler.nextAcross()?.second
+                app.scheduler.nextAcross()?.second?.startsAt
                     ?.format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME)
             },
             haRest = app.haRest,
@@ -77,7 +77,7 @@ class AlarumViewModel(application: Application) : AndroidViewModel(application) 
                     // Every publish carries the whole state object, so omitting
                     // this would blank sensor.alarum_next_alarm every time the
                     // test button was pressed.
-                    nextAlarm = app.scheduler.nextAcross()?.second
+                    nextAlarm = app.scheduler.nextAcross()?.second?.startsAt
                         ?.format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME),
                     ringing = "OFF",
                     stage = "idle",

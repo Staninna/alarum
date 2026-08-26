@@ -30,7 +30,7 @@ automation.
 
 | Entity | Meaning |
 |---|---|
-| `sensor.alarum_next_alarm` | timestamp of the next alarm |
+| `sensor.alarum_next_alarm` | timestamp the next alarm starts ringing, with `awake_by` as an attribute |
 | `binary_sensor.alarum_ringing` | on while it is going off |
 | `sensor.alarum_stage` | `gentle` / `rising` / `insistent` / `hostile` / `idle`, every other field as an attribute |
 | `sensor.alarum_stage_index` | 0-based, for `numeric_state` triggers |
@@ -58,6 +58,25 @@ on the other:
   when the schedule changes. Nothing at idle.
 - **REST fallback** — needs no broker and works immediately, but the entities are
   ephemeral and vanish on an HA restart until the app publishes again.
+
+## What the time on an alarm means
+
+By default, 08:00 is when it *starts* ringing, gently, and the last stage
+arrives a whole ramp later — 08:13 with the shipped profile. That is the wrong
+end of the ramp if 08:00 is when you have to be awake.
+
+Each alarm carries an **awake by** flag. With it set, the time you chose is the
+deadline: the ring starts a ramp earlier and the final stage lands exactly on
+it. The list shows whichever end you cannot see, so an alarm reading 08:00 says
+either "at its worst by 08:13" or "ringing from 07:47".
+
+Set one with less than a ramp to spare and the start is already behind you.
+That fires immediately, and the ring joins the ramp partway through rather than
+restarting it — the deadline is what you asked for, the ramp is only how it
+gets there. The same arithmetic covers an alarm the OS fires late out of Doze.
+
+Snoozing always restarts the ramp from the beginning, whichever way the alarm is
+anchored. You asked for nine more minutes, not for the stage you had reached.
 
 ## Escalation profiles
 

@@ -65,7 +65,9 @@ object HaDiscovery {
         return listOf(
             cfg(
                 "sensor", "next_alarm", "Next alarm", nullable("next_alarm"),
-                """"device_class":"timestamp","icon":"mdi:alarm"""",
+                // Attributes too, so awake_by rides along with the start time
+                // rather than needing an entity of its own.
+                """"device_class":"timestamp","icon":"mdi:alarm","json_attributes_topic":"$stateTopic"""",
             ),
             cfg(
                 "binary_sensor", "ringing", "Ringing", "{{ value_json.ringing }}",

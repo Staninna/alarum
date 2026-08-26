@@ -43,6 +43,7 @@ import dev.stan.alarum.domain.Schedule
 import dev.stan.alarum.ui.AlarumViewModel
 import dev.stan.alarum.ui.components.Picker
 import dev.stan.alarum.ui.components.SectionCard
+import dev.stan.alarum.ui.components.SwitchRow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -131,6 +132,41 @@ fun AlarmEditorScreen(
                 Text(
                     if (alarm.isRepeating) Schedule.daysLabel(alarm.days)
                     else "Fires once, then switches itself off",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            SectionCard("What that time means") {
+                SwitchRow(
+                    label = "Be awake by then",
+                    checked = alarm.awakeBy,
+                    onChange = { alarm = alarm.copy(awakeBy = it) },
+                    help = if (alarm.awakeBy) {
+                        "The ramp finishes at %02d:%02d, so it starts earlier".format(
+                            timeState.hour, timeState.minute,
+                        )
+                    } else {
+                        "It starts ringing at %02d:%02d and escalates from there".format(
+                            timeState.hour, timeState.minute,
+                        )
+                    },
+                )
+                val ramp = profiles.firstOrNull { it.id == alarm.profileId }?.rampSec ?: 0
+                Text(
+                    if (alarm.awakeBy) {
+                        val start = java.time.LocalTime.of(timeState.hour, timeState.minute)
+                            .minusSeconds(ramp.toLong())
+                        "Gently from %02d:%02d, at its worst by %02d:%02d.".format(
+                            start.hour, start.minute, timeState.hour, timeState.minute,
+                        )
+                    } else {
+                        val worst = java.time.LocalTime.of(timeState.hour, timeState.minute)
+                            .plusSeconds(ramp.toLong())
+                        "Gently from %02d:%02d, at its worst by %02d:%02d.".format(
+                            timeState.hour, timeState.minute, worst.hour, worst.minute,
+                        )
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

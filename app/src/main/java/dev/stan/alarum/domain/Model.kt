@@ -217,6 +217,17 @@ data class Alarm(
     val profileId: String,
     /** Set when you skip tomorrow without disabling the alarm entirely. */
     val skipNext: Boolean = false,
+    /**
+     * What the time on the alarm means.
+     *
+     * False: it starts ringing then, gently, and reaches the last stage a whole
+     * ramp later. True: you have to be awake by then, so the ring starts a ramp
+     * early and the last stage lands on the time you set.
+     *
+     * Defaults to false, which is what every alarm saved before this existed
+     * meant, and changing that silently would move somebody's morning.
+     */
+    val awakeBy: Boolean = false,
     val snoozeMinutes: Int = 9,
 ) {
     val isRepeating: Boolean get() = days.isNotEmpty()

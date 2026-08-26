@@ -71,8 +71,9 @@ class RingService : Service() {
         when (intent?.action) {
             ACTION_START -> {
                 val id = intent.getStringExtra(AlarmReceiver.EXTRA_ALARM_ID)
+                val intended = intent.getLongExtra(AlarmReceiver.EXTRA_STARTED_AT, 0L)
                 startForeground(NOTIFICATION_ID, buildNotification("Alarm", "Waking up"))
-                if (id != null && loop == null) begin(id)
+                if (id != null && loop == null) begin(id, intended)
             }
             ACTION_DISMISS -> finishRing(snooze = false)
             ACTION_SNOOZE -> finishRing(snooze = true)
@@ -80,9 +81,15 @@ class RingService : Service() {
         return START_STICKY
     }
 
-    private fun begin(alarmId: String) {
+    private fun begin(alarmId: String, intendedStart: Long) {
         acquireWakeLock()
-        startedAt = System.currentTimeMillis()
+        // The ramp is measured from when it was meant to begin, not from when
+        // this service happened to start. An awake-by alarm set with less than
+        // a ramp to spare, or one the OS fired late out of Doze, therefore
+        // joins the ramp partway through instead of restarting it and blowing
+        // straight past the time you asked to be awake.
+        val now = System.currentTimeMillis()
+        startedAt = if (intendedStart in 1 until now) intendedStart else now
 
         Ringing.onDismiss = { startSelf(ACTION_DISMISS) }
         Ringing.onSnooze = { startSelf(ACTION_SNOOZE) }
@@ -224,7 +231,7 @@ class RingService : Service() {
         haScope.launch {
             app.publisher.publishLive(
                 AlarumState(
-                    nextAlarm = app.scheduler.nextAcross()?.second
+                    nextAlarm = app.scheduler.nextAcross()?.second?.startsAt
                         ?.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
                     ringing = "ON",
                     stage = state.stage.name,
@@ -255,7 +262,7 @@ class RingService : Service() {
         haScope.launch {
             app.publisher.publishLive(
                 AlarumState(
-                    nextAlarm = app.scheduler.nextAcross()?.second
+                    nextAlarm = app.scheduler.nextAcross()?.second?.startsAt
                         ?.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
                     ringing = "ON",
                     stage = stageName,
@@ -299,7 +306,7 @@ class RingService : Service() {
         haScope.launch {
             app.publisher.publishLive(
                 AlarumState(
-                    nextAlarm = app.scheduler.nextAcross()?.second
+                    nextAlarm = app.scheduler.nextAcross()?.second?.startsAt
                         ?.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
                     ringing = "OFF",
                     stage = if (snooze) "snoozed" else "idle",

@@ -14,6 +14,37 @@ import java.time.ZonedDateTime
 object Schedule {
 
     /**
+     * A scheduled ring: when the noise starts, and when it has to have worked.
+     *
+     * Both are always populated, whichever way the alarm is anchored, because
+     * the phone needs one and Home Assistant wants the other.
+     */
+    data class Ring(
+        val startsAt: ZonedDateTime,
+        val awakeBy: ZonedDateTime,
+    )
+
+    /**
+     * Turn the time on the alarm into an actual ring.
+     *
+     * With [Alarm.awakeBy] set, the time you chose is the deadline rather than
+     * the start, so the ring begins [rampSec] earlier and the final stage lands
+     * on it. That start can be in the past — you set an alarm for ten minutes
+     * from now with a thirteen minute ramp — and that is deliberate: it fires
+     * at once and the ring joins the ramp partway through, because the deadline
+     * is the thing you asked for and the ramp is only how it gets there.
+     */
+    fun nextRing(alarm: Alarm, now: ZonedDateTime, rampSec: Int): Ring? {
+        val chosen = nextOccurrence(alarm, now) ?: return null
+        val ramp = rampSec.coerceAtLeast(0).toLong()
+        return if (alarm.awakeBy) {
+            Ring(startsAt = chosen.minusSeconds(ramp), awakeBy = chosen)
+        } else {
+            Ring(startsAt = chosen, awakeBy = chosen.plusSeconds(ramp))
+        }
+    }
+
+    /**
      * The next moment this alarm should fire, or null if it never will.
      *
      * A one-shot alarm fires at the next occurrence of its time. A repeating

@@ -60,8 +60,11 @@ fun AlarmListScreen(
     val profiles by vm.profiles.collectAsStateWithLifecycle()
 
     val next = alarms
-        .mapNotNull { a -> Schedule.nextOccurrence(a, ZonedDateTime.now())?.let { a to it } }
-        .minByOrNull { it.second }
+        .mapNotNull { a ->
+            val ramp = profiles.firstOrNull { it.id == a.profileId }?.rampSec ?: 0
+            Schedule.nextRing(a, ZonedDateTime.now(), ramp)?.let { a to it }
+        }
+        .minByOrNull { it.second.startsAt }
 
     Scaffold(
         topBar = {
@@ -152,7 +155,7 @@ fun AlarmListScreen(
 }
 
 @Composable
-private fun NextUpHeader(next: Pair<Alarm, ZonedDateTime>?) {
+private fun NextUpHeader(next: Pair<Alarm, Schedule.Ring>?) {
     Column(Modifier.padding(vertical = 24.dp)) {
         if (next == null) {
             Text(
@@ -161,8 +164,8 @@ private fun NextUpHeader(next: Pair<Alarm, ZonedDateTime>?) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         } else {
-            val (alarm, at) = next
-            val until = Duration.between(ZonedDateTime.now(), at)
+            val (alarm, ring) = next
+            val until = Duration.between(ZonedDateTime.now(), ring.startsAt)
             Text(
                 "%02d:%02d".format(alarm.hour, alarm.minute),
                 style = MaterialTheme.typography.displayLarge,
@@ -171,6 +174,18 @@ private fun NextUpHeader(next: Pair<Alarm, ZonedDateTime>?) {
             Text(
                 buildString {
                     append(alarm.label.ifBlank { "Next alarm" })
+                    append(" · ")
+                    // The time on the face is the one you chose; this is the
+                    // other end of the ramp, which is the bit you cannot see.
+                    if (alarm.awakeBy) {
+                        append("ringing from %02d:%02d".format(
+                            ring.startsAt.hour, ring.startsAt.minute,
+                        ))
+                    } else {
+                        append("at its worst by %02d:%02d".format(
+                            ring.awakeBy.hour, ring.awakeBy.minute,
+                        ))
+                    }
                     append(" · in ")
                     append(humanise(until))
                 },
@@ -210,6 +225,7 @@ private fun AlarmRow(
                 Text(
                     listOfNotNull(
                         Schedule.daysLabel(alarm.days),
+                        if (alarm.awakeBy) "awake by" else null,
                         alarm.label.takeIf { it.isNotBlank() },
                         profileName,
                     ).joinToString(" · "),

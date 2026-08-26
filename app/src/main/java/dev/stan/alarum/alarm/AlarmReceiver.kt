@@ -21,6 +21,10 @@ class AlarmReceiver : BroadcastReceiver() {
         val service = Intent(context, RingService::class.java).apply {
             action = RingService.ACTION_START
             putExtra(EXTRA_ALARM_ID, alarmId)
+            // When the ramp was supposed to begin. Differs from now for an
+            // awake-by alarm scheduled with less than a ramp to spare, and
+            // whenever the OS fires us late.
+            putExtra(EXTRA_STARTED_AT, intent.getLongExtra(EXTRA_STARTED_AT, 0L))
         }
         context.startForegroundService(service)
     }
@@ -28,6 +32,7 @@ class AlarmReceiver : BroadcastReceiver() {
     companion object {
         const val ACTION_FIRE = "dev.stan.alarum.FIRE"
         const val EXTRA_ALARM_ID = "alarm_id"
+        const val EXTRA_STARTED_AT = "started_at"
         private const val TAG = "AlarumReceiver"
     }
 }

@@ -41,37 +41,58 @@ class AlarmScheduler(
     }
 
     fun schedule(alarm: Alarm) {
-        val next = Schedule.nextOccurrence(alarm, ZonedDateTime.now()) ?: return
-        val at = next.toInstant().toEpochMilli()
-        scheduleAt(alarm.id, at)
-        Log.i(TAG, "scheduled ${alarm.id} for $next")
+        val ring = nextRing(alarm) ?: return
+        // May be in the past for an awake-by alarm set with less than a ramp to
+        // spare. setAlarmClock fires those at once, which is correct: the
+        // deadline still stands, the ramp just gets less of a run-up.
+        val at = ring.startsAt.toInstant().toEpochMilli()
+        scheduleAt(alarm.id, at, intendedStart = at)
+        Log.i(TAG, "scheduled ${alarm.id}: rings $at, awake by ${ring.awakeBy}")
     }
 
     fun snooze(alarmId: String, minutes: Int) {
         val at = System.currentTimeMillis() + minutes * 60_000L
-        scheduleAt(alarmId, at, snoozed = true)
+        // A snooze always starts the ramp from the beginning, whatever the
+        // alarm is anchored to. You asked for another nine minutes, not for the
+        // stage you had already escalated to.
+        scheduleAt(alarmId, at, snoozed = true, intendedStart = at)
     }
 
-    private fun scheduleAt(alarmId: String, epochMillis: Long, snoozed: Boolean = false) {
+    private fun nextRing(alarm: Alarm): Schedule.Ring? = Schedule.nextRing(
+        alarm = alarm,
+        now = ZonedDateTime.now(),
+        rampSec = repository.profileOrDefault(alarm.profileId).rampSec,
+    )
+
+    private fun scheduleAt(
+        alarmId: String,
+        epochMillis: Long,
+        snoozed: Boolean = false,
+        intendedStart: Long = epochMillis,
+    ) {
         val show = PendingIntent.getActivity(
             context,
             alarmId.hashCode(),
             Intent(context, dev.stan.alarum.MainActivity::class.java),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
-        am.setAlarmClock(AlarmManager.AlarmClockInfo(epochMillis, show), firePending(alarmId, snoozed))
+        am.setAlarmClock(
+            AlarmManager.AlarmClockInfo(epochMillis, show),
+            firePending(alarmId, snoozed, intendedStart),
+        )
     }
 
     fun cancel(alarmId: String) {
-        am.cancel(firePending(alarmId, false))
-        am.cancel(firePending(alarmId, true))
+        am.cancel(firePending(alarmId, false, 0L))
+        am.cancel(firePending(alarmId, true, 0L))
     }
 
-    private fun firePending(alarmId: String, snoozed: Boolean): PendingIntent {
+    private fun firePending(alarmId: String, snoozed: Boolean, intendedStart: Long): PendingIntent {
         val intent = Intent(context, AlarmReceiver::class.java).apply {
             action = AlarmReceiver.ACTION_FIRE
             data = android.net.Uri.parse("alarum://fire/$alarmId${if (snoozed) "/snoozed" else ""}")
             putExtra(AlarmReceiver.EXTRA_ALARM_ID, alarmId)
+            putExtra(AlarmReceiver.EXTRA_STARTED_AT, intendedStart)
         }
         return PendingIntent.getBroadcast(
             context,
@@ -82,12 +103,10 @@ class AlarmScheduler(
     }
 
     /** The soonest upcoming alarm across all of them, for the UI and for HA. */
-    fun nextAcross(): Pair<Alarm, ZonedDateTime>? {
-        val now = ZonedDateTime.now()
-        return repository.alarms.value
-            .mapNotNull { a -> Schedule.nextOccurrence(a, now)?.let { a to it } }
-            .minByOrNull { it.second }
-    }
+    fun nextAcross(): Pair<Alarm, Schedule.Ring>? =
+        repository.alarms.value
+            .mapNotNull { a -> nextRing(a)?.let { a to it } }
+            .minByOrNull { it.second.startsAt }
 
     fun publishNextAlarm() {
         scope.launch {
@@ -95,7 +114,8 @@ class AlarmScheduler(
             val dismissed = repository.settings.value.lastDismissedEpochSec
             publisher.publish(
                 AlarumState(
-                    nextAlarm = next?.second?.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
+                    nextAlarm = next?.second?.startsAt?.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
+                    awakeBy = next?.second?.awakeBy?.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
                     nextAlarmLabel = next?.first?.label?.ifBlank { "Alarm" },
                     ringing = "OFF",
                     stage = "idle",

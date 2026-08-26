@@ -15,6 +15,12 @@ data class AlarumState(
     /** ISO-8601 with offset, or null when nothing is scheduled. */
     @SerialName("next_alarm") val nextAlarm: String? = null,
     @SerialName("next_alarm_label") val nextAlarmLabel: String? = null,
+    /**
+     * When the alarm intends to have you awake: the moment its final stage
+     * begins. Always populated, whichever way the alarm is anchored — for one
+     * anchored to its start it is simply the start plus the ramp.
+     */
+    @SerialName("awake_by") val awakeBy: String? = null,
     @SerialName("ringing") val ringing: String = "OFF",
     /** Human stage name, e.g. "Gentle". "idle" when not ringing. */
     @SerialName("stage") val stage: String = "idle",
