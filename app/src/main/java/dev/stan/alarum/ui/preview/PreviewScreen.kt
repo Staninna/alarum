@@ -22,10 +22,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -122,6 +124,18 @@ fun PreviewScreen(
                 },
             )
         },
+        floatingActionButton = {
+            // The last stage is meant to be intolerable, so the way out cannot
+            // be a small arrow in the corner. Big, red, and always on top of
+            // the siren.
+            ExtendedFloatingActionButton(
+                onClick = onDone,
+                containerColor = MaterialTheme.colorScheme.error,
+                contentColor = MaterialTheme.colorScheme.onError,
+                icon = { Icon(Icons.Default.Close, contentDescription = null) },
+                text = { Text("Stop preview") },
+            )
+        },
     ) { padding ->
         val s = state
         Column(
@@ -155,7 +169,7 @@ fun PreviewScreen(
                 Phone(s)
                 House(s, onPublish = session::setPublishing)
             }
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(96.dp))
         }
     }
 }
