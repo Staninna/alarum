@@ -216,7 +216,7 @@ class RingService : Service() {
         Challenge.of(
             spec = spec,
             enrolledTagId = app.repository.settings.value.nfcTagId,
-            seed = a.id.hashCode().toLong() * 31 + stageIndex,
+            seed = startedAt + stageIndex * 7919L,
         )
 
     /** A normal state publish that also carries a line for the house to say. */

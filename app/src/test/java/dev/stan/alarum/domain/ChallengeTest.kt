@@ -34,6 +34,16 @@ class ChallengeTest {
     }
 
     @Test
+    fun `different ring seeds produce different maths questions`() {
+        val spec = DismissalSpec(DismissalMethod.MATH, 3)
+        val prompts = (0 until 50).map { seed ->
+            (Challenge.of(spec, null, seed.toLong()) as Challenge.Math).questions.map { it.prompt }
+        }.toSet()
+
+        assertTrue("50 ring seeds produced only ${prompts.size} question sets", prompts.size > 40)
+    }
+
+    @Test
     fun `nfc without an enrolled tag reports itself as unusable`() {
         val none = Challenge.of(DismissalSpec(DismissalMethod.NFC), null, 1) as Challenge.Nfc
         assertFalse(none.enrolled)
